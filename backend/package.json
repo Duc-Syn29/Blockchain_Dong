@@ -1,0 +1,29 @@
+{
+  "name": "event-nft-backend",
+  "version": "1.0.0",
+  "main": "src/app.js",
+  "scripts": {
+    "dev": "nodemon src/app.js",
+    "start": "node src/app.js",
+    "contract:compile": "node scripts/compile-contract.js",
+    "contract:deploy:testnet": "node scripts/deploy-contract.js",
+    "contract:export-abi": "node scripts/export-contract-abi.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^17.3.1",
+    "ethers": "^6.13.1",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.5",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.3"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@openzeppelin/contracts": "^4.9.6",
+    "hardhat": "^2.22.17",
+    "nodemon": "^3.1.14",
+    "solc": "^0.8.24"
+  }
+}
