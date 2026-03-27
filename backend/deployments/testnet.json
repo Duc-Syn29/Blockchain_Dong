@@ -1,8 +1,0 @@
-{
-  "network": "testnet",
-  "contractName": "EventTicketNFT",
-  "contractAddress": "0xFbabe185A6e27cf47F98C9eA91A9B59051a0Fe64",
-  "deployer": "0xa99403A6fbcc5fd5FA6f877c0aCfA727cfA7A45b",
-  "owner": "0xa99403A6fbcc5fd5FA6f877c0aCfA727cfA7A45b",
-  "deployedAt": "2026-03-22T07:33:48.207Z"
-}
