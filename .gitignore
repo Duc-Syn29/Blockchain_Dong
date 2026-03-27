@@ -1,0 +1,15 @@
+node_modules/
+artifacts/
+cache/
+coverage/
+.nyc_output/
+.npm-cache/
+.appdata/
+.localappdata/
+
+.env
+*.log
+npm-debug.log*
+
+backend/deployments/testnet.json
+backend/src/config/contractAbi.json
