@@ -1,5 +1,5 @@
 const { ethers } = require("ethers");
-const { Ticket, Event, User } = require("../models");
+const { Ticket, Event, TicketTier, User } = require("../models");
 const { getContract, getMintFunctionName } = require("../config/blockchain");
 const { normalizeWalletAddress } = require("../utils/normalizers");
 
@@ -54,17 +54,11 @@ exports.buyTicket = async (req, res) => {
     if (!user.walletAddress) {
       return res
         .status(400)
-        .json({ message: "Please add a wallet address to your profile before buying tickets" });
+        .json({ message: "Please register with a wallet address before buying tickets" });
     }
 
     if (walletAddress) {
-      let normalizedWalletAddress = null;
-
-      try {
-        normalizedWalletAddress = normalizeWalletAddress(walletAddress);
-      } catch (error) {
-        return res.status(400).json({ message: error.message });
-      }
+      const normalizedWalletAddress = normalizeWalletAddress(walletAddress);
 
       if (normalizedWalletAddress !== user.walletAddress) {
         return res.status(403).json({ message: "You can only buy tickets with your own wallet" });
@@ -76,12 +70,16 @@ exports.buyTicket = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    if (event.totalTickets <= 0) {
-      return res.status(400).json({ message: "This event is not open for ticket sales" });
+    const tier = await TicketTier.findOne({
+      where: { eventId: event.id },
+      order: [["id", "ASC"]],
+    });
+
+    if (!tier) {
+      return res.status(400).json({ message: "This event does not have a ticket tier" });
     }
 
-    const soldTickets = await Ticket.count({ where: { eventId } });
-    if (soldTickets >= event.totalTickets) {
+    if (Number(tier.currentSupply) >= Number(tier.maxSupply)) {
       return res.status(400).json({ message: "This event is sold out" });
     }
 
@@ -90,14 +88,20 @@ exports.buyTicket = async (req, res) => {
 
     tx = await contract[mintFunctionName](user.walletAddress, event.id);
     const receipt = await tx.wait();
-    const tokenId = extractMintedTokenId(receipt, contract, user.walletAddress) || tx.hash;
+    const tokenId = extractMintedTokenId(receipt, contract, user.walletAddress);
+
+    if (!tokenId || !/^\d+$/.test(tokenId)) {
+      throw new Error("Unable to extract a numeric tokenId from the mint transaction");
+    }
 
     const ticket = await Ticket.create({
-      tokenId,
-      transactionHash: tx.hash,
+      tierId: tier.id,
       eventId: event.id,
+      tokenId,
       ownerWallet: user.walletAddress,
-      status: "VALID",
+      transactionHash: tx.hash,
+      status: "Valid",
+      isUsed: false,
     });
 
     res.status(201).json({
@@ -119,10 +123,6 @@ exports.getMyTickets = async (req, res) => {
     const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
-    }
-
-    if (!user.walletAddress) {
-      return res.status(400).json({ message: "Wallet address not found for this user" });
     }
 
     const tickets = await Ticket.findAll({
@@ -160,11 +160,12 @@ exports.checkIn = async (req, res) => {
         .json({ message: "You can only check in tickets for events you organize" });
     }
 
-    if (ticket.status === "USED") {
+    if (ticket.isUsed || ticket.status === "Used") {
       return res.status(400).json({ message: "This ticket has already been used" });
     }
 
-    ticket.status = "USED";
+    ticket.isUsed = true;
+    ticket.status = "Used";
     await ticket.save();
 
     res.json({

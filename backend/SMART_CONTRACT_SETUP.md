@@ -1,78 +1,81 @@
-# Smart Contract Setup
+# Thiết lập Hợp đồng Thông minh
 
-This project now includes a minimal ERC-721 ticket contract for testnet deployment.
-The compile flow uses the local `solc` package so it can work without Hardhat downloading a compiler.
+Dự án này hiện đã bao gồm một hợp đồng ticket ERC-721 tối thiểu để triển khai trên mạng thử nghiệm.
 
-## Files
+Quy trình biên dịch sử dụng gói `solc` cục bộ nên có thể hoạt động mà không cần Hardhat tải xuống trình biên dịch.
 
-- `contracts/EventTicketNFT.sol`: NFT ticket smart contract
-- `hardhat.config.js`: optional Hardhat configuration for later use
-- `scripts/compile-contract.js`: compiles the contract locally with `solc`
-- `scripts/deploy-contract.js`: deploys the contract and writes the ABI for the backend
-- `scripts/export-contract-abi.js`: exports the ABI again after a new compile
+## Các tập tin
 
-## Required `.env` values
+- `contracts/EventTicketNFT.sol`: Hợp đồng thông minh vé NFT
+- `hardhat.config.js`: Cấu hình Hardhat tùy chọn để sử dụng sau này
+- `scripts/compile-contract.js`: Biên dịch hợp đồng cục bộ bằng `solc`
+- `scripts/deploy-contract.js`: Triển khai hợp đồng và ghi ABI cho máy chủ phụ trợ
+- `scripts/export-contract-abi.js`: Xuất lại ABI sau khi biên dịch lại
 
-The deploy flow reuses the same environment file as the backend:
+## Các giá trị `.env` bắt buộc
 
-- `TESTNET_RPC_URL` or `RPC_URL`
-- `DEPLOYER_PRIVATE_KEY` or a valid `PRIVATE_KEY`
+Quy trình triển khai sử dụng lại cùng một tập tin môi trường như máy chủ phụ trợ:
 
-After deployment, update `.env` with:
+- `TESTNET_RPC_URL` hoặc `RPC_URL`
 
-- `CONTRACT_ADDRESS=<deployed address>`
+- `DEPLOYER_PRIVATE_KEY` hoặc một `PRIVATE_KEY` hợp lệ
+
+Sau khi triển khai, cập nhật `.env` với:
+
+- `CONTRACT_ADDRESS=<địa chỉ đã triển khai>`
 - `MINT_FUNCTION_NAME=mintTicket`
 
-Optional values:
+Các giá trị tùy chọn:
 
 - `CONTRACT_NAME`
 - `CONTRACT_SYMBOL`
 - `BASE_TOKEN_URI`
 - `CONTRACT_OWNER_ADDRESS`
 
-## Commands
+## Các lệnh
 
-Install Solidity tooling:
+Cài đặt công cụ Solidity:
 
 ```powershell
 npm install
 ```
 
-Compile the contract:
+Biên dịch hợp đồng:
 
 ```powershell
 npm run contract:compile
 ```
 
-When deploying to Oasis Sapphire Testnet, compile with `EVM version = paris`.
-This repository already does that for you because Sapphire does not support `PUSH0`
-from `shanghai` and later EVM versions.
+Khi triển khai lên mạng thử nghiệm Oasis Sapphire, hãy biên dịch với `EVM version = paris`.
 
-Deploy to the configured testnet:
+Kho lưu trữ này đã thực hiện điều đó cho bạn vì Sapphire không hỗ trợ `PUSH0`
+từ phiên bản `shanghai` trở lên.
+
+Triển khai lên mạng thử nghiệm đã cấu hình:
 
 ```powershell
 npm run contract:deploy:testnet
 ```
 
-Export ABI again if needed:
+Xuất lại ABI nếu cần:
 
 ```powershell
 npm run contract:export-abi
 ```
 
-## Backend integration
+## Tích hợp backend
 
-After a successful deploy:
+Sau khi triển khai thành công:
 
-1. Copy the printed `CONTRACT_ADDRESS` into `.env`
-2. Keep `RPC_URL` and `PRIVATE_KEY` pointed at the same testnet/minter wallet
-3. Restart the backend:
+1. Sao chép `CONTRACT_ADDRESS` đã in vào `.env`
+2. Giữ nguyên `RPC_URL` và `PRIVATE_KEY` trỏ đến cùng một ví testnet/minter
+3. Khởi động lại backend:
 
 ```powershell
 node src/app.js
 ```
 
-The backend will then read:
+Backend sau đó sẽ đọc:
 
-- `CONTRACT_ADDRESS` from `.env`
-- ABI from `src/config/contractAbi.json`
+- `CONTRACT_ADDRESS` từ `.env`
+- ABI từ `src/config/contractAbi.json`

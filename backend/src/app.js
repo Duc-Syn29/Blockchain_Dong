@@ -12,6 +12,27 @@ const { connectDB, sequelize } = require("./config/db");
 require("./models");
 
 const app = express();
+const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"];
+const frontendOriginEnv = process.env.FRONTEND_ORIGIN || "";
+const allowedOrigins = frontendOriginEnv
+  ? frontendOriginEnv.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : defaultOrigins;
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const resolvedOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
+  res.header("Access-Control-Allow-Origin", resolvedOrigin);
+  res.header("Vary", "Origin");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  return next();
+});
 
 app.use(express.json());
 
@@ -22,7 +43,10 @@ app.use("/tickets", require("./routes/ticket.routes"));
 const startServer = async () => {
   try {
     await connectDB();
-    await sequelize.sync({ alter: true });
+
+    if (process.env.DB_SYNC === "true") {
+      await sequelize.sync();
+    }
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
