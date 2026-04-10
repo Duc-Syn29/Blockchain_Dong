@@ -5,7 +5,7 @@ export function GuestRoute({ children }) {
   const { isAuthenticated, isAuthReady } = useAuth();
 
   if (!isAuthReady) {
-    return <div className="page-feedback">Loading account...</div>;
+    return <div className="page-feedback">Đang tải tài khoản...</div>;
   }
 
   if (isAuthenticated) {

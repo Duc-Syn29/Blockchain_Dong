@@ -6,7 +6,7 @@ export function ProtectedRoute({ children }) {
   const location = useLocation();
 
   if (!isAuthReady) {
-    return <div className="page-feedback">Loading account...</div>;
+    return <div className="page-feedback">Đang tải tài khoản...</div>;
   }
 
   if (!isAuthenticated) {

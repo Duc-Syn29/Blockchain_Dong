@@ -69,7 +69,7 @@ export function AuthForm({
                       type="button"
                       onClick={() => togglePasswordVisibility(field.name)}
                     >
-                      {visiblePasswords[field.name] ? "Hide" : "Show"}
+                      {visiblePasswords[field.name] ? "Ẩn" : "Hiện"}
                     </button>
                   ) : null}
                 </div>
@@ -82,7 +82,7 @@ export function AuthForm({
         })}
 
         <button className="primary-button" disabled={isSubmitting} type="submit">
-          {isSubmitting ? "Please wait..." : submitLabel}
+          {isSubmitting ? "Đang xử lý..." : submitLabel}
         </button>
       </form>
 

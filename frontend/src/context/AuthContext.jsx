@@ -104,6 +104,24 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const linkWallet = async (payload) => {
+    setIsLoading(true);
+
+    try {
+      const response = await authService.linkWallet(payload);
+      const nextToken = response.token;
+      const nextUser = response.user;
+
+      storeAuth(nextToken, nextUser);
+      setToken(nextToken);
+      setUser(nextUser);
+
+      return response;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = () => {
     clearStoredAuth();
     setToken(null);
@@ -120,6 +138,7 @@ export function AuthProvider({ children }) {
       login,
       register,
       updateProfile,
+      linkWallet,
       logout,
     }),
     [token, user, isLoading, isBootstrapping]

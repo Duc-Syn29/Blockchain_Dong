@@ -1,0 +1,112 @@
+2026-04-03 - Cập nhật dự án
+
+Chức năng mới / đã hoàn thiện:
+- Kết nối front-end, back-end, MySQL; API hoạt động.
+- Mua vé: giới hạn tối đa 3 vé/sự kiện, chọn số lượng 1-3; ban tổ chức không thể mua.
+- Hiển thị hết vé và khóa nút mua khi đã bán hết.
+- Hiển thị số vé đã bán, còn lại, thành tiền; định dạng tiền tệ.
+- Việt hóa toàn bộ giao diện; bỏ các dòng demo thừa.
+- Trang Hồ sơ: hiển thị ví rút gọn + nút ẩn/hiện; ẩn "Vé của tôi" với organizer.
+- Trang Vé: QR, tải QR, sao chép giao dịch; vé đã dùng không thể lấy QR.
+- Trang Soát vé: quét QR bằng camera + tải ảnh QR + nhập token; thông báo check-in thành công/đã sử dụng.
+- Trang Quản lý sự kiện (organizer): xem thống kê, chỉnh sửa sự kiện, danh sách vé, check-in theo ngày, xuất CSV.
+- Thêm nút "Xem giao dịch" (mở explorer).
+
+Kỹ thuật / cấu hình:
+- Thêm API organizer: /organizer/events, /organizer/events/:id/tickets, /organizer/events/:id/checkins.
+- Đồng bộ .env cho explorer Oasis Sapphire và currency label.
+- Thêm ErrorBoundary cho Check-in để tránh màn hình trắng khi có lỗi.
+- Chuẩn hóa định dạng thời gian dd/MM/yyyy HH:mm.
+
+Vị trí chức năng trong code:
+- Mua vé, giới hạn tối đa 3 vé, chặn ban tổ chức mua:
+  Front-end: frontend/src/pages/HomePage.jsx, frontend/src/services/ticketService.js
+  Back-end: backend/src/controllers/ticket.controller.js, backend/src/routes/ticket.routes.js
+- Hiển thị hết vé, số vé đã bán, số vé còn lại, giá vé:
+  Front-end: frontend/src/pages/HomePage.jsx, frontend/src/styles/global.css
+  Back-end dữ liệu trả về: backend/src/controllers/event.controller.js
+- Hồ sơ người dùng / ban tổ chức, ví rút gọn, ẩn hiện ví, ẩn mục "Vé của tôi" với organizer:
+  Front-end: frontend/src/pages/ProfilePage.jsx
+  Back-end hồ sơ: backend/src/controllers/auth.controller.js, backend/src/routes/auth.routes.js
+- Hiển thị QR vé, tải QR, sao chép mã giao dịch:
+  Front-end: frontend/src/pages/ProfilePage.jsx
+- Soát vé bằng camera:
+  Front-end: frontend/src/pages/CheckInPage.jsx, frontend/src/router.jsx, frontend/src/components/layout/AppShell.jsx
+  Back-end xác nhận check-in: backend/src/controllers/ticket.controller.js, backend/src/routes/ticket.routes.js
+- Soát vé bằng tải ảnh QR:
+  Front-end: frontend/src/pages/CheckInPage.jsx
+  Back-end xác nhận check-in: backend/src/controllers/ticket.controller.js
+- Soát vé bằng nhập token:
+  Front-end: frontend/src/pages/CheckInPage.jsx
+  Back-end xác nhận check-in: backend/src/controllers/ticket.controller.js
+- Thông báo "Check-in thành công", "QR đã qua sử dụng", chặn dùng lại vé:
+  Back-end: backend/src/controllers/ticket.controller.js
+  Front-end hiển thị kết quả: frontend/src/pages/CheckInPage.jsx, frontend/src/pages/ProfilePage.jsx
+- Trang Quản lý sự kiện cho organizer:
+  Front-end: frontend/src/pages/OrganizerPage.jsx, frontend/src/router.jsx, frontend/src/components/layout/AppShell.jsx
+  Back-end: backend/src/controllers/organizer.controller.js, backend/src/routes/organizer.routes.js, backend/src/app.js
+- Chỉnh sửa sự kiện của organizer:
+  Front-end: frontend/src/pages/OrganizerPage.jsx, frontend/src/services/eventService.js
+  Back-end: backend/src/controllers/event.controller.js, backend/src/routes/event.routes.js
+- Xem danh sách vé / khách của sự kiện:
+  Front-end: frontend/src/pages/OrganizerPage.jsx, frontend/src/services/organizerService.js
+  Back-end: backend/src/controllers/organizer.controller.js, backend/src/routes/organizer.routes.js
+- Xem thống kê check-in theo ngày:
+  Front-end: frontend/src/pages/OrganizerPage.jsx, frontend/src/services/organizerService.js
+  Back-end: backend/src/controllers/organizer.controller.js, backend/src/routes/organizer.routes.js
+- Xuất danh sách vé / khách ra CSV:
+  Front-end: frontend/src/pages/OrganizerPage.jsx
+- Nút "Xem giao dịch" mở explorer:
+  Front-end: frontend/src/pages/ProfilePage.jsx
+  Cấu hình: frontend/.env, frontend/.env.example
+- Việt hóa giao diện:
+  Front-end chính: frontend/src/pages/HomePage.jsx, frontend/src/pages/ProfilePage.jsx, frontend/src/pages/LoginPage.jsx, frontend/src/pages/RegisterPage.jsx, frontend/src/components/layout/AppShell.jsx, frontend/src/components/forms/AuthForm.jsx
+- ErrorBoundary chống màn hình trắng ở trang soát vé:
+  Front-end: frontend/src/components/ErrorBoundary.jsx, frontend/src/router.jsx
+- Định dạng thời gian dd/MM/yyyy HH:mm:
+  Front-end: frontend/src/pages/HomePage.jsx, frontend/src/pages/ProfilePage.jsx, frontend/src/pages/OrganizerPage.jsx
+- Cấu hình API base URL, explorer Oasis Sapphire, nhãn tiền tệ:
+  Front-end: frontend/.env, frontend/.env.example
+- Kết nối và mount route back-end:
+  Back-end: backend/src/app.js
+
+Ghi chú:
+- dapp.txt được dùng để ghi lại các thay đổi hằng ngày.
+
+2026-04-07 - Cập nhật luồng tài khoản và ví MetaMask
+
+Chức năng mới / đã hoàn thiện:
+- Đăng ký tài khoản không còn bắt buộc nhập địa chỉ ví.
+- Sau khi đăng nhập, người dùng vào Hồ sơ có thể bấm nút liên kết ví MetaMask.
+- Chỉ khi liên kết ví MetaMask thành công mới có thể mua vé.
+- Ban tổ chức chỉ khi liên kết ví MetaMask thành công mới có thể tạo sự kiện và vào trang quản lý sự kiện.
+- Hồ sơ hiển thị trạng thái ví: đã liên kết hoặc chưa liên kết.
+- Khi chưa liên kết ví, mục vé của người dùng sẽ hiện nhắc nhở liên kết ví trước khi mua vé.
+
+Kỹ thuật / cấu hình:
+- Back-end tạo địa chỉ ví tạm nội bộ cho tài khoản mới chưa liên kết MetaMask để vẫn phù hợp với schema hiện tại.
+- Thêm API liên kết ví MetaMask sau đăng nhập.
+- Cập nhật token đăng nhập sau khi liên kết ví để đồng bộ wallet thật vào toàn bộ hệ thống.
+- Chặn các thao tác cần blockchain nếu tài khoản vẫn đang dùng ví tạm.
+
+Vị trí chức năng trong code:
+- Đăng ký không cần nhập ví:
+  Front-end: frontend/src/pages/RegisterPage.jsx
+  Back-end: backend/src/controllers/auth.controller.js, backend/src/routes/auth.routes.js
+- Tạo ví tạm nội bộ cho tài khoản chưa liên kết:
+  Back-end: backend/src/utils/walletState.js, backend/src/controllers/auth.controller.js
+- Liên kết ví MetaMask sau đăng nhập:
+  Front-end: frontend/src/pages/ProfilePage.jsx, frontend/src/context/AuthContext.jsx, frontend/src/services/authService.js
+  Back-end: backend/src/controllers/auth.controller.js, backend/src/routes/auth.routes.js
+- Cập nhật lại token sau khi liên kết ví:
+  Front-end: frontend/src/context/AuthContext.jsx
+  Back-end: backend/src/controllers/auth.controller.js
+- Chặn mua vé khi chưa liên kết ví:
+  Front-end: frontend/src/pages/HomePage.jsx, frontend/src/pages/ProfilePage.jsx
+  Back-end: backend/src/controllers/ticket.controller.js
+- Chặn tạo / quản lý sự kiện khi ban tổ chức chưa liên kết ví:
+  Front-end: frontend/src/pages/HomePage.jsx, frontend/src/pages/OrganizerPage.jsx
+  Back-end: backend/src/controllers/event.controller.js, backend/src/controllers/organizer.controller.js
+
+Ghi chú:
+- Luồng mới: Đăng ký -> Đăng nhập -> Liên kết MetaMask -> Mua vé / tạo sự kiện.

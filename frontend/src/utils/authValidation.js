@@ -62,7 +62,7 @@ export function validateWalletAddress(walletAddress) {
   }
 
   if (!/^0x[a-fA-F0-9]{40}$/.test(normalizedWalletAddress)) {
-    return "Wallet address phải là địa chỉ ví hợp lệ";
+    return "Địa chỉ ví phải là địa chỉ ví hợp lệ";
   }
 
   return "";

@@ -5,4 +5,5 @@ export const authService = {
   login: (payload) => apiClient.post("/auth/login", payload),
   me: () => apiClient.get("/auth/me"),
   updateProfile: (payload) => apiClient.put("/auth/profile", payload),
+  linkWallet: (payload) => apiClient.post("/auth/link-wallet", payload),
 };

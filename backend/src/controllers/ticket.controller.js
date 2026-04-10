@@ -2,6 +2,7 @@ const { ethers } = require("ethers");
 const { Ticket, Event, TicketTier, User } = require("../models");
 const { getContract, getMintFunctionName } = require("../config/blockchain");
 const { normalizeWalletAddress } = require("../utils/normalizers");
+const { isTemporaryWalletAddress } = require("../utils/walletState");
 
 const extractMintedTokenId = (receipt, contract, ownerWallet) => {
   for (const log of receipt.logs || []) {
@@ -40,10 +41,16 @@ exports.buyTicket = async (req, res) => {
   let tx = null;
 
   try {
-    const { eventId, walletAddress } = req.body;
+    const { eventId, walletAddress, quantity } = req.body;
+    const parsedQuantity =
+      quantity === undefined || quantity === null ? 1 : Number(quantity);
 
     if (!eventId) {
       return res.status(400).json({ message: "eventId is required" });
+    }
+
+    if (!Number.isInteger(parsedQuantity) || parsedQuantity < 1 || parsedQuantity > 3) {
+      return res.status(400).json({ message: "Số lượng vé chỉ được từ 1 đến 3" });
     }
 
     const user = await User.findByPk(req.user.id);
@@ -51,10 +58,14 @@ exports.buyTicket = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (!user.walletAddress) {
+    if (user.role === "organizer") {
+      return res.status(403).json({ message: "Ban tổ chức không được mua vé" });
+    }
+
+    if (!user.walletAddress || isTemporaryWalletAddress(user.walletAddress)) {
       return res
         .status(400)
-        .json({ message: "Please register with a wallet address before buying tickets" });
+        .json({ message: "Vui lòng liên kết ví MetaMask trước khi mua vé" });
     }
 
     if (walletAddress) {
@@ -79,6 +90,25 @@ exports.buyTicket = async (req, res) => {
       return res.status(400).json({ message: "This event does not have a ticket tier" });
     }
 
+    const existingTicketCount = await Ticket.count({
+      where: {
+        eventId: event.id,
+        ownerWallet: user.walletAddress,
+      },
+    });
+
+    if (existingTicketCount + parsedQuantity > 3) {
+      return res.status(400).json({ message: "Mỗi sự kiện chỉ được mua tối đa 3 vé" });
+    }
+
+    const availableTickets = Number(tier.maxSupply) - Number(tier.currentSupply);
+
+    if (parsedQuantity > availableTickets) {
+      return res.status(400).json({
+        message: `Chỉ còn ${Math.max(availableTickets, 0)} vé cho sự kiện này`,
+      });
+    }
+
     if (Number(tier.currentSupply) >= Number(tier.maxSupply)) {
       return res.status(400).json({ message: "This event is sold out" });
     }
@@ -86,28 +116,39 @@ exports.buyTicket = async (req, res) => {
     const contract = getContract();
     const mintFunctionName = getMintFunctionName();
 
-    tx = await contract[mintFunctionName](user.walletAddress, event.id);
-    const receipt = await tx.wait();
-    const tokenId = extractMintedTokenId(receipt, contract, user.walletAddress);
+    const tickets = [];
+    const transactionHashes = [];
 
-    if (!tokenId || !/^\d+$/.test(tokenId)) {
-      throw new Error("Unable to extract a numeric tokenId from the mint transaction");
+    for (let index = 0; index < parsedQuantity; index += 1) {
+      tx = await contract[mintFunctionName](user.walletAddress, String(event.id));
+      const receipt = await tx.wait();
+      const tokenId = extractMintedTokenId(receipt, contract, user.walletAddress);
+
+      if (!tokenId || !/^\d+$/.test(tokenId)) {
+        throw new Error("Unable to extract a numeric tokenId from the mint transaction");
+      }
+
+      const ticket = await Ticket.create({
+        tierId: tier.id,
+        eventId: event.id,
+        tokenId,
+        ownerWallet: user.walletAddress,
+        transactionHash: tx.hash,
+        status: "Valid",
+        isUsed: false,
+      });
+
+      tickets.push(ticket);
+      transactionHashes.push(tx.hash);
     }
 
-    const ticket = await Ticket.create({
-      tierId: tier.id,
-      eventId: event.id,
-      tokenId,
-      ownerWallet: user.walletAddress,
-      transactionHash: tx.hash,
-      status: "Valid",
-      isUsed: false,
-    });
-
     res.status(201).json({
-      message: "Ticket purchased successfully",
-      ticket,
-      transactionHash: tx.hash,
+      message:
+        parsedQuantity > 1
+          ? `Mua ${parsedQuantity} vé thành công.`
+          : "Mua vé thành công.",
+      tickets,
+      transactionHashes,
     });
   } catch (err) {
     console.error("Ticket purchase failed:", err);
@@ -161,7 +202,7 @@ exports.checkIn = async (req, res) => {
     }
 
     if (ticket.isUsed || ticket.status === "Used") {
-      return res.status(400).json({ message: "This ticket has already been used" });
+      return res.status(400).json({ message: "QR đã qua sử dụng" });
     }
 
     ticket.isUsed = true;
@@ -169,7 +210,7 @@ exports.checkIn = async (req, res) => {
     await ticket.save();
 
     res.json({
-      message: "Check-in successful",
+      message: "Check-in thành công",
       ticket,
     });
   } catch (err) {

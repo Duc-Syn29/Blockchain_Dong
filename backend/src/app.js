@@ -39,6 +39,7 @@ app.use(express.json());
 app.use("/auth", require("./routes/auth.routes"));
 app.use("/events", require("./routes/event.routes"));
 app.use("/tickets", require("./routes/ticket.routes"));
+app.use("/organizer", require("./routes/organizer.routes"));
 
 const startServer = async () => {
   try {

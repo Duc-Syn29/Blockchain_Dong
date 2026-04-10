@@ -69,9 +69,10 @@ textarea {
 .secondary-button,
 .ghost-button {
   border-radius: 999px;
-  padding: 0.85rem 1.25rem;
+  padding: 0.7rem 1.1rem;
   border: 1px solid transparent;
   cursor: pointer;
+  font-size: 0.95rem;
 }
 
 .primary-button,
@@ -88,6 +89,18 @@ textarea {
 .ghost-button {
   background: transparent;
   border-color: rgba(20, 33, 61, 0.15);
+}
+
+.ghost-button.compact,
+.secondary-button.compact,
+.primary-button.compact {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.88rem;
+}
+
+.icon-button {
+  width: 28px;
+  height: 28px;
 }
 
 .page-container {
@@ -300,10 +313,71 @@ textarea {
   gap: 0.75rem;
 }
 
+.wallet-link-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
 .event-grid,
 .ticket-list {
   display: grid;
   gap: 1rem;
+}
+
+.table-card {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: #fffdf7;
+  border: 1px solid rgba(20, 33, 61, 0.08);
+}
+
+.table-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.table-row {
+  display: grid;
+  gap: 0.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed rgba(20, 33, 61, 0.15);
+}
+
+.table-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.table-row strong {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7a6c5d;
+}
+
+.table-row span {
+  font-weight: 600;
+}
+
+.scanner-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.qr-reader {
+  width: min(320px, 100%);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 33, 61, 0.08);
+}
+
+.qr-reader-hidden {
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  border: none;
 }
 
 .event-grid {
@@ -336,7 +410,15 @@ textarea {
   margin: 0;
 }
 
+.event-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
 .event-stats div,
+.event-details div,
 .ticket-details div {
   padding: 0.9rem 1rem;
   border-radius: 18px;
@@ -345,18 +427,101 @@ textarea {
 }
 
 .event-stats dt,
+.event-details dt,
 .ticket-details dt {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: #7a6c5d;
+  text-transform: none;
 }
 
 .event-stats dd,
+.event-details dd,
 .ticket-details dd {
-  margin: 0.4rem 0 0;
+  margin: 0;
   font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+.event-stats dt span {
+  color: #14213d;
+  font-weight: 700;
+}
+
+.event-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(20, 33, 61, 0.08);
+  overflow: hidden;
+}
+
+.event-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #fca311, #ffcc6f);
+  border-radius: 999px;
+}
+
+.event-remaining {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4c5a73;
+}
+
+.button-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  display: inline-block;
+  margin-left: 0.5rem;
+  animation: spin 0.8s linear infinite;
+}
+
+.ticket-qr {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: flex-start;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inline-actions span {
+  min-width: 0;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(20, 33, 61, 0.15);
+  background: #ffffff;
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.icon-button:hover {
+  background: rgba(20, 33, 61, 0.05);
 }
 
 @media (max-width: 720px) {

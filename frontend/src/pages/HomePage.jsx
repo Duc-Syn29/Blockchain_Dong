@@ -21,15 +21,26 @@ const formatDateTime = (value) => {
     return "Chưa có lịch";
   }
 
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Chưa có lịch";
+  }
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
 export function HomePage() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const isOrganizer = user?.role === "organizer";
+  const hasLinkedWallet = Boolean(user?.walletLinked);
+  const currencyLabel = import.meta.env.VITE_CURRENCY_LABEL || "ROSE";
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState("");
@@ -39,6 +50,7 @@ export function HomePage() {
   const [isSubmittingEvent, setIsSubmittingEvent] = useState(false);
   const [buyingEventId, setBuyingEventId] = useState("");
   const [purchaseMessage, setPurchaseMessage] = useState("");
+  const [selectedQuantities, setSelectedQuantities] = useState({});
 
   const loadEvents = async () => {
     setIsLoading(true);
@@ -71,6 +83,12 @@ export function HomePage() {
 
   const handleCreateEvent = async (event) => {
     event.preventDefault();
+
+    if (!hasLinkedWallet) {
+      setEventFormError("Vui lòng liên kết ví MetaMask trước khi tạo sự kiện.");
+      return;
+    }
+
     setIsSubmittingEvent(true);
     setEventFormError("");
     setEventFormSuccess("");
@@ -101,13 +119,31 @@ export function HomePage() {
       return;
     }
 
+    if (isOrganizer) {
+      setPageError("Ban tổ chức không thể mua vé.");
+      return;
+    }
+
+    if (!hasLinkedWallet) {
+      setPageError("Vui lòng liên kết ví MetaMask trong hồ sơ trước khi mua vé.");
+      navigate("/profile");
+      return;
+    }
+
+    const targetEvent = events.find((eventItem) => eventItem.id === eventId);
+    const soldTickets = Number(targetEvent?.soldTickets ?? 0);
+    const totalTickets = Number(targetEvent?.totalTickets ?? 0);
+    const remainingTickets = Math.max(totalTickets - soldTickets, 0);
+    const maxSelectable = Math.min(3, Math.max(1, remainingTickets));
+    const quantity = Math.min(Number(selectedQuantities[eventId] || 1), maxSelectable);
+
     setBuyingEventId(eventId);
     setPurchaseMessage("");
     setPageError("");
 
     try {
-      const response = await ticketService.buy(eventId);
-      setPurchaseMessage(response.message || "Mua vé thành công.");
+      const response = await ticketService.buy(eventId, quantity);
+      setPurchaseMessage(response.message || `Mua ${quantity} vé thành công.`);
     } catch (error) {
       setPageError(error.message);
     } finally {
@@ -117,25 +153,19 @@ export function HomePage() {
 
   return (
     <section className="page-stack">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <p className="eyebrow">Frontend + Backend live</p>
-          <h1>Khám phá sự kiện, tạo sự kiện và mua vé NFT ngay trên cùng một app</h1>
-          <p>
-            Frontend hiện đã gọi trực tiếp API của backend cho đăng ký, đăng nhập, xem
-            sự kiện, tạo sự kiện và lấy vé của người dùng.
-          </p>
-        </div>
-
-        <div className="hero-actions">
-          <Link className="primary-button" to={isAuthenticated ? "/profile" : "/register"}>
-            {isAuthenticated ? "Mở hồ sơ của tôi" : "Tạo tài khoản"}
-          </Link>
-          {!isAuthenticated ? (
-            <Link className="secondary-button" to="/login">
-              Đăng nhập
+      <section className="panel-card">
+        <div className="panel-heading">
+          <h1>Sự kiện</h1>
+          <div className="hero-actions">
+            <Link className="primary-button" to={isAuthenticated ? "/profile" : "/register"}>
+              {isAuthenticated ? "Mở hồ sơ của tôi" : "Tạo tài khoản"}
             </Link>
-          ) : null}
+            {!isAuthenticated ? (
+              <Link className="secondary-button" to="/login">
+                Đăng nhập
+              </Link>
+            ) : null}
+          </div>
         </div>
       </section>
 
@@ -148,79 +178,90 @@ export function HomePage() {
         <section className="panel-card">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Organizer tools</p>
               <h2>Tạo sự kiện mới</h2>
             </div>
           </div>
 
-          <form className="event-form" onSubmit={handleCreateEvent}>
-            <label className="form-field">
-              <span>Tên sự kiện</span>
-              <input
-                name="title"
-                value={eventForm.title}
-                onChange={handleEventFormChange}
-                placeholder="Blockchain Builder Night"
-                required
-              />
-            </label>
-            <label className="form-field">
-              <span>Mô tả</span>
-              <textarea
-                name="description"
-                value={eventForm.description}
-                onChange={handleEventFormChange}
-                placeholder="Mô tả ngắn về sự kiện"
-                rows="4"
-              />
-            </label>
-            <label className="form-field">
-              <span>Thời gian</span>
-              <input
-                name="date"
-                type="datetime-local"
-                value={eventForm.date}
-                onChange={handleEventFormChange}
-                required
-              />
-            </label>
-            <label className="form-field">
-              <span>Địa điểm</span>
-              <input
-                name="location"
-                value={eventForm.location}
-                onChange={handleEventFormChange}
-                placeholder="Ho Chi Minh City"
-              />
-            </label>
-            <label className="form-field">
-              <span>Số lượng vé</span>
-              <input
-                name="totalTickets"
-                type="number"
-                min="0"
-                value={eventForm.totalTickets}
-                onChange={handleEventFormChange}
-              />
-            </label>
-            <label className="form-field">
-              <span>Giá vé</span>
-              <input
-                name="price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={eventForm.price}
-                onChange={handleEventFormChange}
-              />
-            </label>
-
-            <div className="form-actions">
-              <button className="primary-button" disabled={isSubmittingEvent} type="submit">
-                {isSubmittingEvent ? "Đang tạo..." : "Tạo sự kiện"}
-              </button>
+          {!hasLinkedWallet ? (
+            <div className="wallet-link-panel">
+              <p className="page-feedback">
+                Ban tổ chức cần liên kết ví MetaMask trong hồ sơ trước khi tạo sự kiện.
+              </p>
+              <Link className="secondary-button" to="/profile">
+                Đi tới hồ sơ để liên kết ví
+              </Link>
             </div>
-          </form>
+          ) : (
+            <form className="event-form" onSubmit={handleCreateEvent}>
+              <label className="form-field">
+                <span>Tên sự kiện</span>
+                <input
+                  name="title"
+                  value={eventForm.title}
+                  onChange={handleEventFormChange}
+                  placeholder="Tên sự kiện"
+                  required
+                />
+              </label>
+              <label className="form-field">
+                <span>Mô tả</span>
+                <textarea
+                  name="description"
+                  value={eventForm.description}
+                  onChange={handleEventFormChange}
+                  placeholder="Mô tả ngắn về sự kiện"
+                  rows="4"
+                />
+              </label>
+              <label className="form-field">
+                <span>Thời gian</span>
+                <input
+                  name="date"
+                  type="datetime-local"
+                  value={eventForm.date}
+                  onChange={handleEventFormChange}
+                  required
+                />
+              </label>
+              <label className="form-field">
+                <span>Địa điểm</span>
+                <input
+                  name="location"
+                  value={eventForm.location}
+                  onChange={handleEventFormChange}
+                  placeholder="Địa điểm"
+                />
+              </label>
+              <label className="form-field">
+                <span>Số lượng vé</span>
+                <input
+                  name="totalTickets"
+                  type="number"
+                  min="0"
+                  value={eventForm.totalTickets}
+                  onChange={handleEventFormChange}
+                />
+              </label>
+              <label className="form-field">
+                <span>Giá vé</span>
+                <input
+                  name="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={eventForm.price}
+                  onChange={handleEventFormChange}
+                />
+              </label>
+
+              <div className="form-actions">
+                <button className="primary-button" disabled={isSubmittingEvent} type="submit">
+                  {isSubmittingEvent ? "Đang tạo..." : "Tạo sự kiện"}
+                  {isSubmittingEvent ? <span className="button-spinner" /> : null}
+                </button>
+              </div>
+            </form>
+          )}
 
           {eventFormSuccess ? (
             <p className="page-feedback page-feedback-success">{eventFormSuccess}</p>
@@ -234,7 +275,6 @@ export function HomePage() {
       <section className="panel-card">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Events API</p>
             <h2>Danh sách sự kiện</h2>
           </div>
           <button className="ghost-button" type="button" onClick={loadEvents}>
@@ -245,46 +285,133 @@ export function HomePage() {
         {isLoading ? <p className="page-feedback">Đang tải sự kiện...</p> : null}
 
         {!isLoading && events.length === 0 ? (
-          <p className="page-feedback">Chưa có sự kiện nào. Organizer có thể tạo sự kiện đầu tiên.</p>
+          <p className="page-feedback">Chưa có sự kiện nào. Ban tổ chức có thể tạo sự kiện đầu tiên.</p>
         ) : null}
 
         <div className="event-grid">
-          {events.map((event) => (
-            <article className="event-card" key={event.id}>
+          {events.map((event) => {
+            const soldTickets = Number(event.soldTickets ?? 0);
+            const totalTickets = Number(event.totalTickets ?? 0);
+            const remainingTickets = Math.max(totalTickets - soldTickets, 0);
+            const maxSelectable = Math.min(3, Math.max(1, remainingTickets));
+            const selectedQuantity = Math.min(
+              Number(selectedQuantities[event.id] || 1),
+              maxSelectable
+            );
+
+            return (
+              <article className="event-card" key={event.id}>
+              {Number(event.soldTickets ?? 0) >= Number(event.totalTickets ?? 0) ? (
+                <span className="event-badge">Hết vé</span>
+              ) : null}
               <div className="event-card-top">
-                <p className="eyebrow">Event</p>
                 <h3>{event.title}</h3>
-                <p className="event-meta">{formatDateTime(event.date)}</p>
-                <p className="event-meta">{event.location || "Địa điểm sẽ cập nhật sau"}</p>
               </div>
 
-              <p className="event-description">
-                {event.description || "Sự kiện chưa có mô tả chi tiết."}
-              </p>
-
-              <dl className="event-stats">
+              <dl className="event-details">
                 <div>
-                  <dt>Giá</dt>
-                  <dd>{Number(event.price || 0).toLocaleString("vi-VN")}</dd>
+                  <dt>Chủ đề:</dt>
+                  <dd>{event.description || "Chưa cập nhật"}</dd>
                 </div>
                 <div>
-                  <dt>Tổng vé</dt>
-                  <dd>{event.totalTickets ?? 0}</dd>
+                  <dt>Địa điểm:</dt>
+                  <dd>{event.location || "Chưa cập nhật"}</dd>
+                </div>
+                <div>
+                  <dt>Thời gian:</dt>
+                  <dd>{formatDateTime(event.date)}</dd>
+                </div>
+                <div>
+                  <dt>Người tổ chức:</dt>
+                  <dd>{isOrganizer ? user?.name || "Ban tổ chức" : "Ban tổ chức"}</dd>
                 </div>
               </dl>
 
-              <div className="card-actions">
-                <button
-                  className="primary-button"
-                  type="button"
-                  onClick={() => handleBuyTicket(event.id)}
-                  disabled={buyingEventId === event.id}
-                >
-                  {buyingEventId === event.id ? "Đang xử lý..." : "Mua vé"}
-                </button>
+              <dl className="event-stats">
+                <div>
+                  <dt>
+                    Giá:{" "}
+                    <span>
+                      {Number(event.price || 0).toLocaleString("vi-VN")} {currencyLabel}
+                    </span>
+                  </dt>
+                </div>
+                <div>
+                  <dt>
+                    Tổng vé: <span>{totalTickets}</span>
+                  </dt>
+                </div>
+                <div>
+                  <dt>
+                    Đã bán: <span>{soldTickets}</span>
+                  </dt>
+                </div>
+              </dl>
+              <div className="event-progress">
+                <div
+                  className="event-progress-bar"
+                  style={{
+                    width: totalTickets > 0 ? `${(soldTickets / totalTickets) * 100}%` : "0%",
+                  }}
+                />
               </div>
+              <p className="event-remaining">
+                Còn lại {remainingTickets} vé
+              </p>
+
+              {!isOrganizer ? (
+                <div className="card-actions">
+                  <label className="form-field">
+                    <span>Số vé</span>
+                    <select
+                      className="form-select"
+                      value={selectedQuantity}
+                      onChange={(eventSelect) =>
+                        setSelectedQuantities((current) => ({
+                          ...current,
+                          [event.id]: Number(eventSelect.target.value),
+                        }))
+                      }
+                      disabled={
+                        buyingEventId === event.id ||
+                        (isAuthenticated && !hasLinkedWallet) ||
+                        soldTickets >= totalTickets
+                      }
+                    >
+                      {Array.from({ length: maxSelectable }, (_, index) => {
+                        const value = index + 1;
+                        return (
+                          <option key={value} value={value}>
+                            {value}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </label>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    onClick={() => handleBuyTicket(event.id)}
+                    disabled={
+                      buyingEventId === event.id ||
+                      (isAuthenticated && !hasLinkedWallet) ||
+                      soldTickets >= totalTickets
+                    }
+                  >
+                    {soldTickets >= totalTickets
+                      ? "Hết vé"
+                      : isAuthenticated && !hasLinkedWallet
+                        ? "Liên kết ví để mua"
+                      : buyingEventId === event.id
+                        ? "Đang xử lý..."
+                        : "Mua vé"}
+                    {buyingEventId === event.id ? <span className="button-spinner" /> : null}
+                  </button>
+                </div>
+              ) : null}
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
     </section>

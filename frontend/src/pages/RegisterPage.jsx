@@ -7,14 +7,12 @@ import {
   validateEmail,
   validateName,
   validatePassword,
-  validateWalletAddress,
 } from "../utils/authValidation";
 
 const initialValues = {
   name: "",
   email: "",
   role: "user",
-  walletAddress: "",
   password: "",
   confirmPassword: "",
 };
@@ -36,14 +34,6 @@ export function RegisterPage() {
       return validateEmail(nextValues.email);
     }
 
-    if (name === "walletAddress") {
-      if (!nextValues.walletAddress.trim()) {
-        return "Wallet address không được để trống";
-      }
-
-      return validateWalletAddress(nextValues.walletAddress);
-    }
-
     if (name === "password") {
       return validatePassword(nextValues.password);
     }
@@ -62,7 +52,6 @@ export function RegisterPage() {
     const nextErrors = {};
     const nameError = validateField("name", values);
     const emailError = validateField("email", values);
-    const walletAddressError = validateField("walletAddress", values);
     const passwordError = validateField("password", values);
     const confirmPasswordError = validateField("confirmPassword", values);
 
@@ -72,10 +61,6 @@ export function RegisterPage() {
 
     if (emailError) {
       nextErrors.email = emailError;
-    }
-
-    if (walletAddressError) {
-      nextErrors.walletAddress = walletAddressError;
     }
 
     if (passwordError) {
@@ -128,7 +113,6 @@ export function RegisterPage() {
       setTouched({
         name: true,
         email: true,
-        walletAddress: true,
         password: true,
         confirmPassword: true,
       });
@@ -141,12 +125,11 @@ export function RegisterPage() {
         name: values.name.trim(),
         email: values.email.trim(),
         role: values.role,
-        walletAddress: values.walletAddress.trim(),
         password: values.password,
       });
       navigate("/login", {
         replace: true,
-        state: { message: "Registration successful. Please login." },
+        state: { message: "Đăng ký thành công. Vui lòng đăng nhập." },
       });
     } catch (error) {
       setServerError(error.message);
@@ -157,7 +140,7 @@ export function RegisterPage() {
     <>
       <AuthForm
         title="Đăng ký"
-        subtitle="Tạo tài khoản mới"
+        subtitle="Tạo tài khoản mới, liên kết ví sau khi đăng nhập"
         fields={[
           {
             name: "name",
@@ -179,12 +162,6 @@ export function RegisterPage() {
               { value: "user", label: "Người dùng" },
               { value: "organizer", label: "Ban tổ chức" },
             ],
-          },
-          {
-            name: "walletAddress",
-            label: "Ví nhận NFT",
-            type: "text",
-            placeholder: "0x...",
           },
           {
             name: "password",

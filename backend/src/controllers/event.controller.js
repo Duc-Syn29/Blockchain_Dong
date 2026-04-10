@@ -1,6 +1,7 @@
 const { Op } = require("sequelize");
 const { sequelize } = require("../config/db");
 const { Event, TicketTier } = require("../models");
+const { isTemporaryWalletAddress } = require("../utils/walletState");
 
 const DEFAULT_EVENT_DURATION_MS = 2 * 60 * 60 * 1000;
 
@@ -132,6 +133,13 @@ exports.createEvent = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
+    if (isTemporaryWalletAddress(req.user.id)) {
+      await transaction.rollback();
+      return res.status(400).json({
+        message: "Vui lòng liên kết ví MetaMask trước khi tạo sự kiện",
+      });
+    }
+
     const eventPayload = sanitizeEventPayload(req.body);
 
     if (!eventPayload.title || !eventPayload.date) {
@@ -225,6 +233,13 @@ exports.updateEvent = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
+    if (isTemporaryWalletAddress(req.user.id)) {
+      await transaction.rollback();
+      return res.status(400).json({
+        message: "Vui lòng liên kết ví MetaMask trước khi chỉnh sửa sự kiện",
+      });
+    }
+
     const event = await Event.findByPk(req.params.id, {
       include: [
         {
@@ -321,6 +336,12 @@ exports.updateEvent = async (req, res) => {
 
 exports.deleteEvent = async (req, res) => {
   try {
+    if (isTemporaryWalletAddress(req.user.id)) {
+      return res.status(400).json({
+        message: "Vui lòng liên kết ví MetaMask trước khi quản lý sự kiện",
+      });
+    }
+
     const event = await Event.findByPk(req.params.id);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
