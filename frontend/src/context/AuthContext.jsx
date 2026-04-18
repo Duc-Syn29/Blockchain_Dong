@@ -59,6 +59,17 @@ export function AuthProvider({ children }) {
     };
   }, [token]);
 
+  const refreshUser = async () => {
+    if (!token) {
+      return null;
+    }
+
+    const response = await authService.me();
+    setUser(response.user);
+    storeAuth(token, response.user);
+    return response.user;
+  };
+
   const login = async (credentials) => {
     setIsLoading(true);
 
@@ -122,6 +133,27 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateTicketPin = async (payload) => {
+    setIsLoading(true);
+
+    try {
+      const response = await authService.updateTicketPin(payload);
+      const nextUser = response.user;
+
+      if (nextUser) {
+        setUser(nextUser);
+
+        if (token) {
+          storeAuth(token, nextUser);
+        }
+      }
+
+      return response;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = () => {
     clearStoredAuth();
     setToken(null);
@@ -138,6 +170,8 @@ export function AuthProvider({ children }) {
       login,
       register,
       updateProfile,
+      updateTicketPin,
+      refreshUser,
       linkWallet,
       logout,
     }),

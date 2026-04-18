@@ -2,6 +2,9 @@ const { Op } = require("sequelize");
 const { sequelize } = require("../config/db");
 const { Event, Ticket, TicketTier, User } = require("../models");
 const { isTemporaryWalletAddress } = require("../utils/walletState");
+const isEventClosed = (event) =>
+  String(event?.status || "").trim() === "Cancelled" ||
+  String(event?.visibility || "").trim() === "Unlisted";
 
 const getTierForEvent = (event) => {
   const tiers = event.ticketTiers || [];
@@ -24,14 +27,17 @@ const mapOrganizerEvent = async (event) => {
     id: event.id,
     title: event.title,
     description: event.description,
+    posterUrl: event.posterUrl,
     date: event.date,
     location: event.location,
     status: event.status,
+    visibility: event.visibility,
     soldTickets,
     totalTickets,
     price,
     revenue: soldTickets * price,
     checkedInCount,
+    isClosed: isEventClosed(event),
   };
 };
 

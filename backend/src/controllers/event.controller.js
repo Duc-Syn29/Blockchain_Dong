@@ -1,9 +1,28 @@
+const fs = require("fs/promises");
+const path = require("path");
+const crypto = require("crypto");
 const { Op } = require("sequelize");
 const { sequelize } = require("../config/db");
-const { Event, TicketTier } = require("../models");
+const { Event, TicketTier, User } = require("../models");
 const { isTemporaryWalletAddress } = require("../utils/walletState");
 
 const DEFAULT_EVENT_DURATION_MS = 2 * 60 * 60 * 1000;
+const EVENT_UPLOAD_DIR = path.join(__dirname, "../../uploads/events");
+const MIME_TYPE_TO_EXTENSION = {
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+};
+
+const FILE_EXTENSION_TO_UPLOAD_EXTENSION = {
+  ".jpg": ".jpg",
+  ".jpeg": ".jpg",
+  ".png": ".png",
+  ".webp": ".webp",
+  ".gif": ".gif",
+};
 
 const slugify = (value) =>
   String(value || "")
@@ -50,6 +69,16 @@ const sanitizeEventPayload = (payload = {}) => {
 
   if (payload.description !== undefined) {
     sanitizedPayload.description = String(payload.description).trim();
+  }
+
+  if (payload.posterUrl !== undefined) {
+    const posterUrl = String(payload.posterUrl || "").trim();
+
+    if (posterUrl.length > 500) {
+      throw new Error("posterUrl is too long");
+    }
+
+    sanitizedPayload.posterUrl = posterUrl || null;
   }
 
   if (payload.date !== undefined) {
@@ -101,13 +130,17 @@ const mapEventResponse = (event) => {
     id: event.id,
     title: event.title,
     description: event.description,
+    posterUrl: event.posterUrl,
     date: event.date,
     location: event.location,
     totalTickets: tier ? Number(tier.maxSupply) : Number(event.totalTickets || 0),
     soldTickets: tier ? Number(tier.currentSupply) : 0,
     price: tier ? Number(tier.price) : 0,
     organizerId: event.organizerId,
+    organizerName: event.Organizer?.name || null,
     status: event.status,
+    visibility: event.visibility,
+    isClosed: isEventClosed(event),
   };
 };
 
@@ -119,9 +152,24 @@ const getSaleStartTime = (eventDate) => {
   return new Date(safeStartTime);
 };
 
+const buildPublicPosterUrl = (req, relativePath) => {
+  const normalizedPath = String(relativePath || "").replace(/\\/g, "/");
+  return `${req.protocol}://${req.get("host")}${normalizedPath}`;
+};
+
+const normalizeComparableWallet = (value) => String(value || "").trim().toLowerCase();
+const isEventClosed = (event) =>
+  String(event?.status || "").trim() === "Cancelled" ||
+  String(event?.visibility || "").trim() === "Unlisted";
+
 const loadEventWithTier = (eventId) =>
   Event.findByPk(eventId, {
     include: [
+      {
+        model: User,
+        as: "Organizer",
+        attributes: ["walletAddress", "name"],
+      },
       {
         model: TicketTier,
         as: "ticketTiers",
@@ -158,6 +206,7 @@ exports.createEvent = async (req, res) => {
         title: eventPayload.title,
         slug: await createUniqueSlug(eventPayload.title),
         description: eventPayload.description || "",
+        posterUrl: eventPayload.posterUrl || null,
         location: eventPayload.location || "TBA",
         date: eventDate,
         endDate: new Date(eventDate.getTime() + DEFAULT_EVENT_DURATION_MS),
@@ -197,10 +246,75 @@ exports.createEvent = async (req, res) => {
   }
 };
 
+exports.uploadPoster = async (req, res) => {
+  try {
+    if (isTemporaryWalletAddress(req.user.id)) {
+      return res.status(400).json({
+        message: "Vui lòng liên kết ví MetaMask trước khi tải poster",
+      });
+    }
+
+    const mimeType = String(req.headers["content-type"] || "")
+      .split(";")[0]
+      .trim()
+      .toLowerCase();
+    const encodedFileName = String(req.headers["x-file-name"] || "").trim();
+    let uploadedFileName = encodedFileName;
+
+    try {
+      uploadedFileName = decodeURIComponent(encodedFileName);
+    } catch (error) {
+      uploadedFileName = encodedFileName;
+    }
+
+    uploadedFileName = uploadedFileName.toLowerCase();
+    const fileExtension = path.extname(uploadedFileName);
+    const extension =
+      MIME_TYPE_TO_EXTENSION[mimeType] || FILE_EXTENSION_TO_UPLOAD_EXTENSION[fileExtension];
+
+    if (!extension) {
+      return res.status(400).json({
+        message: "Chỉ hỗ trợ ảnh JPG, PNG, WEBP hoặc GIF",
+      });
+    }
+
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return res.status(400).json({
+        message: "Không nhận được dữ liệu ảnh",
+      });
+    }
+
+    await fs.mkdir(EVENT_UPLOAD_DIR, { recursive: true });
+
+    const fileName = `${Date.now()}-${crypto.randomUUID()}${extension}`;
+    const targetPath = path.join(EVENT_UPLOAD_DIR, fileName);
+    await fs.writeFile(targetPath, req.body);
+
+    const relativePath = `/uploads/events/${fileName}`;
+
+    res.status(201).json({
+      message: "Tải poster thành công",
+      posterUrl: buildPublicPosterUrl(req, relativePath),
+      posterPath: relativePath,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getEvents = async (req, res) => {
   try {
     const events = await Event.findAll({
+      where: {
+        status: "Published",
+        visibility: "Public",
+      },
       include: [
+        {
+          model: User,
+          as: "Organizer",
+          attributes: ["walletAddress", "name"],
+        },
         {
           model: TicketTier,
           as: "ticketTiers",
@@ -256,7 +370,7 @@ exports.updateEvent = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    if (event.organizerId !== req.user.id) {
+    if (normalizeComparableWallet(event.organizerId) !== normalizeComparableWallet(req.user.id)) {
       await transaction.rollback();
       return res.status(403).json({ message: "You can only update your own events" });
     }
@@ -292,6 +406,10 @@ exports.updateEvent = async (req, res) => {
 
     if (eventPayload.description !== undefined) {
       updates.description = eventPayload.description;
+    }
+
+    if (eventPayload.posterUrl !== undefined) {
+      updates.posterUrl = eventPayload.posterUrl;
     }
 
     if (eventPayload.location !== undefined) {
@@ -347,7 +465,7 @@ exports.deleteEvent = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    if (event.organizerId !== req.user.id) {
+    if (normalizeComparableWallet(event.organizerId) !== normalizeComparableWallet(req.user.id)) {
       return res.status(403).json({ message: "You can only delete your own events" });
     }
 
@@ -355,5 +473,112 @@ exports.deleteEvent = async (req, res) => {
     res.json({ message: "Event deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.closeEvent = async (req, res) => {
+  try {
+    if (isTemporaryWalletAddress(req.user.id)) {
+      return res.status(400).json({
+        message: "Vui lòng liên kết ví MetaMask trước khi quản lý sự kiện",
+      });
+    }
+
+    const event = await Event.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: "Organizer",
+          attributes: ["walletAddress", "name"],
+        },
+        {
+          model: TicketTier,
+          as: "ticketTiers",
+        },
+      ],
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (normalizeComparableWallet(event.organizerId) !== normalizeComparableWallet(req.user.id)) {
+      return res.status(403).json({ message: "You can only close your own events" });
+    }
+
+    await event.update({
+      status: "Cancelled",
+      visibility: "Unlisted",
+    });
+
+    return res.json({
+      message: "Đã đóng sự kiện và gỡ khỏi trang chủ",
+      event: mapEventResponse(event),
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+exports.reopenEvent = async (req, res) => {
+  try {
+    if (isTemporaryWalletAddress(req.user.id)) {
+      return res.status(400).json({
+        message: "Vui lòng liên kết ví MetaMask trước khi quản lý sự kiện",
+      });
+    }
+
+    const event = await Event.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: "Organizer",
+          attributes: ["walletAddress", "name"],
+        },
+        {
+          model: TicketTier,
+          as: "ticketTiers",
+        },
+      ],
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (normalizeComparableWallet(event.organizerId) !== normalizeComparableWallet(req.user.id)) {
+      return res.status(403).json({ message: "You can only reopen your own events" });
+    }
+
+    if (!isEventClosed(event)) {
+      return res.status(400).json({ message: "Sự kiện này đang mở bán" });
+    }
+
+    if (new Date(event.date).getTime() <= Date.now()) {
+      return res.status(400).json({
+        message: "Chỉ có thể mở bán lại khi ngày sự kiện đã được chỉnh sang tương lai",
+      });
+    }
+
+    const tier = getTierForEvent(event);
+    if (tier) {
+      await tier.update({
+        saleStartTime: getSaleStartTime(new Date(event.date)),
+        saleEndTime: new Date(event.date),
+      });
+    }
+
+    await event.update({
+      status: "Published",
+      visibility: "Public",
+      publishedAt: new Date(),
+    });
+
+    return res.json({
+      message: "Đã mở bán lại sự kiện",
+      event: mapEventResponse(event),
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 };

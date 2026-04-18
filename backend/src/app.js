@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const path = require("path");
 
 const requiredEnvKeys = ["DATABASE_URL", "JWT_SECRET"];
 const missingEnvKeys = requiredEnvKeys.filter((key) => !process.env[key]);
@@ -24,7 +25,7 @@ app.use((req, res, next) => {
 
   res.header("Access-Control-Allow-Origin", resolvedOrigin);
   res.header("Vary", "Origin");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-File-Name");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
 
   if (req.method === "OPTIONS") {
@@ -35,6 +36,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.use("/auth", require("./routes/auth.routes"));
 app.use("/events", require("./routes/event.routes"));

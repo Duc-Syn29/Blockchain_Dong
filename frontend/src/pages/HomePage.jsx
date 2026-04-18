@@ -1,20 +1,50 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { Link } from "react-router-dom";
 import { eventService } from "../services/eventService";
-import { ticketService } from "../services/ticketService";
-
-const initialEventForm = {
-  title: "",
-  description: "",
-  date: "",
-  location: "",
-  totalTickets: "50",
-  price: "0",
-};
 
 const sortEventsByDate = (events) =>
   [...events].sort((left, right) => new Date(left.date) - new Date(right.date));
+
+const EVENT_VISUALS = [
+  { from: "#14213d", to: "#1d3557", glow: "rgba(255, 196, 92, 0.28)" },
+  { from: "#4f000b", to: "#9d0208", glow: "rgba(255, 140, 120, 0.26)" },
+  { from: "#283618", to: "#606c38", glow: "rgba(255, 214, 102, 0.24)" },
+  { from: "#3d405b", to: "#6d597a", glow: "rgba(255, 200, 162, 0.26)" },
+];
+
+const getOrganizerDisplayName = (event) =>
+  event.organizerName || event.organizerDisplayName || event.organizerId || "Ban tổ chức";
+
+const hashTitle = (value) =>
+  String(value || "")
+    .split("")
+    .reduce((total, char) => total + char.charCodeAt(0), 0);
+
+const getEventVisualStyle = (title) => {
+  const palette = EVENT_VISUALS[hashTitle(title) % EVENT_VISUALS.length];
+
+  return {
+    "--event-visual-from": palette.from,
+    "--event-visual-to": palette.to,
+    "--event-visual-glow": palette.glow,
+  };
+};
+
+const escapePosterUrl = (value) => String(value || "").replace(/"/g, '\\"');
+
+const getPosterStyle = (event) => {
+  const visualStyle = getEventVisualStyle(event.title);
+
+  if (!event.posterUrl) {
+    return visualStyle;
+  }
+
+  return {
+    backgroundImage: `linear-gradient(180deg, rgba(20, 33, 61, 0.10), rgba(20, 33, 61, 0.36)), url("${escapePosterUrl(event.posterUrl)}")`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  };
+};
 
 const formatDateTime = (value) => {
   if (!value) {
@@ -36,21 +66,14 @@ const formatDateTime = (value) => {
 };
 
 export function HomePage() {
-  const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
-  const isOrganizer = user?.role === "organizer";
-  const hasLinkedWallet = Boolean(user?.walletLinked);
   const currencyLabel = import.meta.env.VITE_CURRENCY_LABEL || "ROSE";
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState("");
-  const [eventForm, setEventForm] = useState(initialEventForm);
-  const [eventFormError, setEventFormError] = useState("");
-  const [eventFormSuccess, setEventFormSuccess] = useState("");
-  const [isSubmittingEvent, setIsSubmittingEvent] = useState(false);
-  const [buyingEventId, setBuyingEventId] = useState("");
-  const [purchaseMessage, setPurchaseMessage] = useState("");
-  const [selectedQuantities, setSelectedQuantities] = useState({});
+  const [activePosterIndex, setActivePosterIndex] = useState(0);
+  const [dragStartX, setDragStartX] = useState(null);
+  const [dragOffsetX, setDragOffsetX] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const loadEvents = async () => {
     setIsLoading(true);
@@ -70,209 +93,161 @@ export function HomePage() {
     loadEvents();
   }, []);
 
-  const handleEventFormChange = (event) => {
-    const { name, value } = event.target;
+  const posterEvents = events.filter((event) => Boolean(event.posterUrl));
+  const featuredPosterEvents = (posterEvents.length > 0 ? posterEvents : events).slice(0, 8);
 
-    setEventForm((current) => ({
-      ...current,
-      [name]: value,
-    }));
-    setEventFormError("");
-    setEventFormSuccess("");
+  useEffect(() => {
+    if (featuredPosterEvents.length === 0) {
+      setActivePosterIndex(0);
+      return undefined;
+    }
+
+    setActivePosterIndex((current) => current % featuredPosterEvents.length);
+
+    if (featuredPosterEvents.length === 1) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setActivePosterIndex((current) => (current + 1) % featuredPosterEvents.length);
+    }, 4500);
+
+    return () => window.clearInterval(intervalId);
+  }, [featuredPosterEvents.length]);
+
+  const goToPoster = (nextIndex) => {
+    if (featuredPosterEvents.length === 0) {
+      return;
+    }
+
+    const normalizedIndex =
+      ((nextIndex % featuredPosterEvents.length) + featuredPosterEvents.length) %
+      featuredPosterEvents.length;
+
+    setActivePosterIndex(normalizedIndex);
   };
 
-  const handleCreateEvent = async (event) => {
-    event.preventDefault();
-
-    if (!hasLinkedWallet) {
-      setEventFormError("Vui lòng liên kết ví MetaMask trước khi tạo sự kiện.");
-      return;
-    }
-
-    setIsSubmittingEvent(true);
-    setEventFormError("");
-    setEventFormSuccess("");
-
-    try {
-      const response = await eventService.create({
-        title: eventForm.title.trim(),
-        description: eventForm.description.trim(),
-        date: eventForm.date,
-        location: eventForm.location.trim(),
-        totalTickets: Number(eventForm.totalTickets),
-        price: Number(eventForm.price),
-      });
-
-      setEvents((current) => sortEventsByDate([...current, response.event]));
-      setEventForm(initialEventForm);
-      setEventFormSuccess("Tạo sự kiện thành công.");
-    } catch (error) {
-      setEventFormError(error.message);
-    } finally {
-      setIsSubmittingEvent(false);
-    }
+  const handlePosterDragStart = (clientX) => {
+    setDragStartX(clientX);
+    setDragOffsetX(0);
   };
 
-  const handleBuyTicket = async (eventId) => {
-    if (!isAuthenticated) {
-      navigate("/login", { state: { from: { pathname: "/" } } });
+  const handlePosterDragMove = (clientX) => {
+    if (dragStartX === null) {
       return;
     }
 
-    if (isOrganizer) {
-      setPageError("Ban tổ chức không thể mua vé.");
-      return;
-    }
-
-    if (!hasLinkedWallet) {
-      setPageError("Vui lòng liên kết ví MetaMask trong hồ sơ trước khi mua vé.");
-      navigate("/profile");
-      return;
-    }
-
-    const targetEvent = events.find((eventItem) => eventItem.id === eventId);
-    const soldTickets = Number(targetEvent?.soldTickets ?? 0);
-    const totalTickets = Number(targetEvent?.totalTickets ?? 0);
-    const remainingTickets = Math.max(totalTickets - soldTickets, 0);
-    const maxSelectable = Math.min(3, Math.max(1, remainingTickets));
-    const quantity = Math.min(Number(selectedQuantities[eventId] || 1), maxSelectable);
-
-    setBuyingEventId(eventId);
-    setPurchaseMessage("");
-    setPageError("");
-
-    try {
-      const response = await ticketService.buy(eventId, quantity);
-      setPurchaseMessage(response.message || `Mua ${quantity} vé thành công.`);
-    } catch (error) {
-      setPageError(error.message);
-    } finally {
-      setBuyingEventId("");
-    }
+    setDragOffsetX(clientX - dragStartX);
   };
+
+  const handlePosterDragEnd = () => {
+    if (dragStartX === null) {
+      return;
+    }
+
+    if (dragOffsetX <= -80) {
+      goToPoster(activePosterIndex + 1);
+    } else if (dragOffsetX >= 80) {
+      goToPoster(activePosterIndex - 1);
+    }
+
+    setDragStartX(null);
+    setDragOffsetX(0);
+  };
+
+  const filteredEvents = events.filter((event) => {
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
+    if (!normalizedSearchTerm) {
+      return true;
+    }
+
+    const searchableText = [
+      event.title,
+      event.description,
+      event.location,
+      getOrganizerDisplayName(event),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(normalizedSearchTerm);
+  });
 
   return (
     <section className="page-stack">
-      <section className="panel-card">
-        <div className="panel-heading">
+      <section className="hero-panel hero-showcase">
+        <div className="hero-showcase-top">
           <h1>Sự kiện</h1>
-          <div className="hero-actions">
-            <Link className="primary-button" to={isAuthenticated ? "/profile" : "/register"}>
-              {isAuthenticated ? "Mở hồ sơ của tôi" : "Tạo tài khoản"}
-            </Link>
-            {!isAuthenticated ? (
-              <Link className="secondary-button" to="/login">
-                Đăng nhập
-              </Link>
-            ) : null}
-          </div>
+          {featuredPosterEvents.length > 1 ? (
+            <div className="hero-slider-dots" aria-label="Chuyển poster sự kiện">
+              {featuredPosterEvents.map((event, index) => (
+                <button
+                  key={event.id}
+                  className={index === activePosterIndex ? "hero-dot active" : "hero-dot"}
+                  type="button"
+                  onClick={() => goToPoster(index)}
+                  aria-label={`Xem poster ${index + 1}`}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
+
+        {featuredPosterEvents.length > 0 ? (
+          <div className="hero-slider-window">
+            <div
+              className="hero-slider-track"
+              style={{
+                transform: `translateX(calc(-${activePosterIndex * 100}% + ${dragOffsetX}px))`,
+                transition: dragStartX === null ? undefined : "none",
+              }}
+              onTouchStart={(event) => handlePosterDragStart(event.touches[0].clientX)}
+              onTouchMove={(event) => handlePosterDragMove(event.touches[0].clientX)}
+              onTouchEnd={handlePosterDragEnd}
+              onTouchCancel={handlePosterDragEnd}
+              onMouseDown={(event) => handlePosterDragStart(event.clientX)}
+              onMouseMove={(event) => {
+                if (dragStartX !== null) {
+                  handlePosterDragMove(event.clientX);
+                }
+              }}
+              onMouseUp={handlePosterDragEnd}
+              onMouseLeave={handlePosterDragEnd}
+            >
+              {featuredPosterEvents.map((event) => (
+                <article className="hero-slide" key={event.id}>
+                  <div className="hero-slide-poster" style={getPosterStyle(event)}>
+                    <span className="hero-poster-chip">Sự kiện đang mở bán</span>
+                    {event.posterUrl ? (
+                      <img
+                        className="hero-slide-image"
+                        src={event.posterUrl}
+                        alt={event.title}
+                        draggable="false"
+                      />
+                    ) : null}
+                    <div className="hero-slide-overlay">
+                      <strong>
+                        <Link to={`/events/${event.id}`}>{event.title}</Link>
+                      </strong>
+                      <span>{formatDateTime(event.date)}</span>
+                      <small>
+                        {event.location || "Chưa cập nhật"} • {getOrganizerDisplayName(event)}
+                      </small>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
-      {purchaseMessage ? (
-        <p className="page-feedback page-feedback-success">{purchaseMessage}</p>
-      ) : null}
       {pageError ? <p className="page-feedback page-feedback-error">{pageError}</p> : null}
 
-      {user?.role === "organizer" ? (
-        <section className="panel-card">
-          <div className="panel-heading">
-            <div>
-              <h2>Tạo sự kiện mới</h2>
-            </div>
-          </div>
-
-          {!hasLinkedWallet ? (
-            <div className="wallet-link-panel">
-              <p className="page-feedback">
-                Ban tổ chức cần liên kết ví MetaMask trong hồ sơ trước khi tạo sự kiện.
-              </p>
-              <Link className="secondary-button" to="/profile">
-                Đi tới hồ sơ để liên kết ví
-              </Link>
-            </div>
-          ) : (
-            <form className="event-form" onSubmit={handleCreateEvent}>
-              <label className="form-field">
-                <span>Tên sự kiện</span>
-                <input
-                  name="title"
-                  value={eventForm.title}
-                  onChange={handleEventFormChange}
-                  placeholder="Tên sự kiện"
-                  required
-                />
-              </label>
-              <label className="form-field">
-                <span>Mô tả</span>
-                <textarea
-                  name="description"
-                  value={eventForm.description}
-                  onChange={handleEventFormChange}
-                  placeholder="Mô tả ngắn về sự kiện"
-                  rows="4"
-                />
-              </label>
-              <label className="form-field">
-                <span>Thời gian</span>
-                <input
-                  name="date"
-                  type="datetime-local"
-                  value={eventForm.date}
-                  onChange={handleEventFormChange}
-                  required
-                />
-              </label>
-              <label className="form-field">
-                <span>Địa điểm</span>
-                <input
-                  name="location"
-                  value={eventForm.location}
-                  onChange={handleEventFormChange}
-                  placeholder="Địa điểm"
-                />
-              </label>
-              <label className="form-field">
-                <span>Số lượng vé</span>
-                <input
-                  name="totalTickets"
-                  type="number"
-                  min="0"
-                  value={eventForm.totalTickets}
-                  onChange={handleEventFormChange}
-                />
-              </label>
-              <label className="form-field">
-                <span>Giá vé</span>
-                <input
-                  name="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={eventForm.price}
-                  onChange={handleEventFormChange}
-                />
-              </label>
-
-              <div className="form-actions">
-                <button className="primary-button" disabled={isSubmittingEvent} type="submit">
-                  {isSubmittingEvent ? "Đang tạo..." : "Tạo sự kiện"}
-                  {isSubmittingEvent ? <span className="button-spinner" /> : null}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {eventFormSuccess ? (
-            <p className="page-feedback page-feedback-success">{eventFormSuccess}</p>
-          ) : null}
-          {eventFormError ? (
-            <p className="page-feedback page-feedback-error">{eventFormError}</p>
-          ) : null}
-        </section>
-      ) : null}
-
-      <section className="panel-card">
+      <section className="panel-card event-list-panel">
         <div className="panel-heading">
           <div>
             <h2>Danh sách sự kiện</h2>
@@ -284,134 +259,51 @@ export function HomePage() {
 
         {isLoading ? <p className="page-feedback">Đang tải sự kiện...</p> : null}
 
-        {!isLoading && events.length === 0 ? (
-          <p className="page-feedback">Chưa có sự kiện nào. Ban tổ chức có thể tạo sự kiện đầu tiên.</p>
-        ) : null}
+        <div className="event-toolbar">
+          <label className="form-field event-search-field">
+            <span>Tìm kiếm sự kiện</span>
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Tên sự kiện, địa điểm, ban tổ chức..."
+            />
+          </label>
+        </div>
 
-        <div className="event-grid">
-          {events.map((event) => {
-            const soldTickets = Number(event.soldTickets ?? 0);
-            const totalTickets = Number(event.totalTickets ?? 0);
-            const remainingTickets = Math.max(totalTickets - soldTickets, 0);
-            const maxSelectable = Math.min(3, Math.max(1, remainingTickets));
-            const selectedQuantity = Math.min(
-              Number(selectedQuantities[event.id] || 1),
-              maxSelectable
-            );
+        <div className="event-carousel-shell">
+          <div className="event-carousel">
+            {filteredEvents.map((event) => (
+              <article className="event-card event-card-featured event-card-compact" key={event.id}>
+                {Number(event.soldTickets ?? 0) >= Number(event.totalTickets ?? 0) ? (
+                  <span className="event-badge">Hết vé</span>
+                ) : null}
 
-            return (
-              <article className="event-card" key={event.id}>
-              {Number(event.soldTickets ?? 0) >= Number(event.totalTickets ?? 0) ? (
-                <span className="event-badge">Hết vé</span>
-              ) : null}
-              <div className="event-card-top">
-                <h3>{event.title}</h3>
-              </div>
+                <div className="event-visual" style={getPosterStyle(event)}>
+                  <span className="event-visual-chip">Sự kiện đang mở bán</span>
+                </div>
 
-              <dl className="event-details">
-                <div>
-                  <dt>Chủ đề:</dt>
-                  <dd>{event.description || "Chưa cập nhật"}</dd>
+                <div className="event-card-top">
+                  <h3>
+                    <Link to={`/events/${event.id}`}>{event.title}</Link>
+                  </h3>
+                  <p className="event-meta">{formatDateTime(event.date)}</p>
+                  <p className="event-meta">{event.location || "Chưa cập nhật"}</p>
+                  <p className="organizer-event-state">Sự kiện đang mở</p>
                 </div>
-                <div>
-                  <dt>Địa điểm:</dt>
-                  <dd>{event.location || "Chưa cập nhật"}</dd>
-                </div>
-                <div>
-                  <dt>Thời gian:</dt>
-                  <dd>{formatDateTime(event.date)}</dd>
-                </div>
-                <div>
-                  <dt>Người tổ chức:</dt>
-                  <dd>{isOrganizer ? user?.name || "Ban tổ chức" : "Ban tổ chức"}</dd>
-                </div>
-              </dl>
 
-              <dl className="event-stats">
-                <div>
-                  <dt>
-                    Giá:{" "}
-                    <span>
-                      {Number(event.price || 0).toLocaleString("vi-VN")} {currencyLabel}
-                    </span>
-                  </dt>
+                <div className="event-price-band">
+                  <span>Giá vé:</span>
+                  <strong>{Number(event.price || 0).toLocaleString("vi-VN")} {currencyLabel}</strong>
                 </div>
-                <div>
-                  <dt>
-                    Tổng vé: <span>{totalTickets}</span>
-                  </dt>
-                </div>
-                <div>
-                  <dt>
-                    Đã bán: <span>{soldTickets}</span>
-                  </dt>
-                </div>
-              </dl>
-              <div className="event-progress">
-                <div
-                  className="event-progress-bar"
-                  style={{
-                    width: totalTickets > 0 ? `${(soldTickets / totalTickets) * 100}%` : "0%",
-                  }}
-                />
-              </div>
-              <p className="event-remaining">
-                Còn lại {remainingTickets} vé
-              </p>
 
-              {!isOrganizer ? (
-                <div className="card-actions">
-                  <label className="form-field">
-                    <span>Số vé</span>
-                    <select
-                      className="form-select"
-                      value={selectedQuantity}
-                      onChange={(eventSelect) =>
-                        setSelectedQuantities((current) => ({
-                          ...current,
-                          [event.id]: Number(eventSelect.target.value),
-                        }))
-                      }
-                      disabled={
-                        buyingEventId === event.id ||
-                        (isAuthenticated && !hasLinkedWallet) ||
-                        soldTickets >= totalTickets
-                      }
-                    >
-                      {Array.from({ length: maxSelectable }, (_, index) => {
-                        const value = index + 1;
-                        return (
-                          <option key={value} value={value}>
-                            {value}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </label>
-                  <button
-                    className="primary-button"
-                    type="button"
-                    onClick={() => handleBuyTicket(event.id)}
-                    disabled={
-                      buyingEventId === event.id ||
-                      (isAuthenticated && !hasLinkedWallet) ||
-                      soldTickets >= totalTickets
-                    }
-                  >
-                    {soldTickets >= totalTickets
-                      ? "Hết vé"
-                      : isAuthenticated && !hasLinkedWallet
-                        ? "Liên kết ví để mua"
-                      : buyingEventId === event.id
-                        ? "Đang xử lý..."
-                        : "Mua vé"}
-                    {buyingEventId === event.id ? <span className="button-spinner" /> : null}
-                  </button>
+                <div className="form-actions">
+                  <Link className="secondary-button compact" to={`/events/${event.id}`}>
+                    Chi tiết
+                  </Link>
                 </div>
-              ) : null}
-            </article>
-            );
-          })}
+              </article>
+            ))}
+          </div>
         </div>
       </section>
     </section>

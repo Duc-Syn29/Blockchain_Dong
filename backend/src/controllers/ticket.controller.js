@@ -1,8 +1,47 @@
 const { ethers } = require("ethers");
+const fs = require("fs/promises");
+const path = require("path");
+const bcrypt = require("bcrypt");
 const { Ticket, Event, TicketTier, User } = require("../models");
 const { getContract, getMintFunctionName } = require("../config/blockchain");
 const { normalizeWalletAddress } = require("../utils/normalizers");
 const { isTemporaryWalletAddress } = require("../utils/walletState");
+
+const TICKET_PIN_STORE_FILE = path.join(__dirname, "../../storage/ticket-pin-settings.json");
+const isEventClosed = (event) =>
+  String(event?.status || "").trim() === "Cancelled" ||
+  String(event?.visibility || "").trim() === "Unlisted";
+const normalizeWalletKey = (value) => {
+  const normalizedValue = String(value || "").trim();
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  try {
+    return normalizeWalletAddress(normalizedValue);
+  } catch (error) {
+    return normalizedValue.toLowerCase();
+  }
+};
+
+const readTicketPinStore = async () => {
+  try {
+    const raw = await fs.readFile(TICKET_PIN_STORE_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return {};
+    }
+
+    throw error;
+  }
+};
+
+const getTicketPinHash = async (walletAddress) => {
+  const ticketPinStore = await readTicketPinStore();
+  return ticketPinStore[normalizeWalletKey(walletAddress)]?.ticketPinHash || null;
+};
 
 const extractMintedTokenId = (receipt, contract, ownerWallet) => {
   for (const log of receipt.logs || []) {
@@ -41,7 +80,7 @@ exports.buyTicket = async (req, res) => {
   let tx = null;
 
   try {
-    const { eventId, walletAddress, quantity } = req.body;
+    const { eventId, walletAddress, quantity, ticketPin } = req.body;
     const parsedQuantity =
       quantity === undefined || quantity === null ? 1 : Number(quantity);
 
@@ -68,10 +107,20 @@ exports.buyTicket = async (req, res) => {
         .json({ message: "Vui lòng liên kết ví MetaMask trước khi mua vé" });
     }
 
+    const ticketPinHash = await getTicketPinHash(user.walletAddress);
+    if (!ticketPinHash) {
+      return res.status(400).json({ message: "Vui lòng tạo mã PIN vé trong hồ sơ trước khi mua vé" });
+    }
+
+    const isTicketPinValid = await bcrypt.compare(String(ticketPin || ""), ticketPinHash);
+    if (!isTicketPinValid) {
+      return res.status(401).json({ message: "Mã PIN xác thực giao dịch không đúng" });
+    }
+
     if (walletAddress) {
       const normalizedWalletAddress = normalizeWalletAddress(walletAddress);
 
-      if (normalizedWalletAddress !== user.walletAddress) {
+      if (normalizedWalletAddress !== normalizeWalletKey(user.walletAddress)) {
         return res.status(403).json({ message: "You can only buy tickets with your own wallet" });
       }
     }
@@ -79,6 +128,10 @@ exports.buyTicket = async (req, res) => {
     const event = await Event.findByPk(eventId);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (isEventClosed(event)) {
+      return res.status(400).json({ message: "Sự kiện này đã đóng và không còn mở bán" });
     }
 
     const tier = await TicketTier.findOne({
@@ -180,10 +233,14 @@ exports.getMyTickets = async (req, res) => {
 
 exports.checkIn = async (req, res) => {
   try {
-    const { tokenId } = req.body;
+    const { tokenId, ticketPin } = req.body;
 
     if (!tokenId) {
       return res.status(400).json({ message: "tokenId is required" });
+    }
+
+    if (!/^\d{4}$/.test(String(ticketPin || "").trim())) {
+      return res.status(400).json({ message: "Thiếu mã PIN xác thực của vé" });
     }
 
     const ticket = await Ticket.findOne({
@@ -195,7 +252,10 @@ exports.checkIn = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    if (req.user.role === "organizer" && ticket.Event?.organizerId !== req.user.id) {
+    if (
+      req.user.role === "organizer" &&
+      normalizeWalletKey(ticket.Event?.organizerId) !== normalizeWalletKey(req.user.id)
+    ) {
       return res
         .status(403)
         .json({ message: "You can only check in tickets for events you organize" });
@@ -205,8 +265,19 @@ exports.checkIn = async (req, res) => {
       return res.status(400).json({ message: "QR đã qua sử dụng" });
     }
 
+    const ticketPinHash = await getTicketPinHash(ticket.ownerWallet);
+    if (!ticketPinHash) {
+      return res.status(400).json({ message: "Vé này chưa thiết lập mã PIN xác thực" });
+    }
+
+    const isTicketPinValid = await bcrypt.compare(String(ticketPin || "").trim(), ticketPinHash);
+    if (!isTicketPinValid) {
+      return res.status(401).json({ message: "PIN trên vé không hợp lệ" });
+    }
+
     ticket.isUsed = true;
     ticket.status = "Used";
+    ticket.usedAt = new Date();
     await ticket.save();
 
     res.json({

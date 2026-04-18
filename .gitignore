@@ -14,3 +14,5 @@ npm-debug.log*
 
 backend/deployments/testnet.json
 backend/src/config/contractAbi.json
+backend/uploads/
+backend/storage/*.json

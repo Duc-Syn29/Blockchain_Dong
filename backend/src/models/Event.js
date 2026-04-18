@@ -39,6 +39,11 @@ const Event = sequelize.define("Event", {
     allowNull: true,
     field: "Description",
   },
+  posterUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    field: "PosterURL",
+  },
   venueName: {
     type: DataTypes.STRING(255),
     allowNull: true,
