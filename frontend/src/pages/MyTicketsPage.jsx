@@ -188,6 +188,122 @@ export function MyTicketsPage() {
   const upcomingTickets = tickets.filter((ticket) => !(ticket.isUsed || ticket.status === "Used"));
   const usedTickets = tickets.filter((ticket) => ticket.isUsed || ticket.status === "Used");
 
+  const renderTicketCard = (ticket, isUsed) => (
+    <article className={`ticket-card ${isUsed ? "ticket-card-used" : "ticket-card-active"}`} key={ticket.id}>
+      <div className="event-visual ticket-visual" style={getPosterStyle(ticket.Event)}>
+        {ticket.Event?.posterUrl ? (
+          <img
+            className="poster-media-image poster-media-image-cover"
+            src={ticket.Event.posterUrl}
+            alt={ticket.Event?.title || "Poster sự kiện"}
+            loading="lazy"
+            decoding="async"
+            draggable="false"
+          />
+        ) : null}
+        <span className={`event-visual-chip ${isUsed ? "event-visual-chip-muted" : "event-visual-chip-ready"}`}>
+          {isUsed ? "Đã tham gia" : "Sẵn sàng check-in"}
+        </span>
+      </div>
+
+      <div className="ticket-card-body">
+        <div className="ticket-card-head">
+          <div className="ticket-card-heading">
+            <span className="ticket-card-kicker">{isUsed ? "Vé đã sử dụng" : "Vé của bạn"}</span>
+            <h3>{ticket.Event?.title || "Sự kiện chưa có tên"}</h3>
+          </div>
+          {buildTxUrl(ticket.transactionHash) ? (
+            <a
+              className="ghost-button compact ticket-card-link"
+              href={buildTxUrl(ticket.transactionHash)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Xem giao dịch
+            </a>
+          ) : null}
+        </div>
+
+        <div className="ticket-card-meta">
+          <span>{formatDateTime(ticket.Event?.date)}</span>
+          <span>{ticket.Event?.location || "Chưa cập nhật"}</span>
+          <span className={isUsed ? "ticket-card-status ticket-card-status-used" : "ticket-card-status"}>
+            {isUsed ? "Đã sử dụng" : "Chưa sử dụng"}
+          </span>
+        </div>
+
+        <dl className="ticket-details ticket-details-premium">
+          <div>
+            <dt>Mã Token</dt>
+            <dd>{ticket.tokenId}</dd>
+          </div>
+          <div>
+            <dt>Ngày diễn ra</dt>
+            <dd>{formatDateTime(ticket.Event?.date)}</dd>
+          </div>
+          <div>
+            <dt>Địa điểm</dt>
+            <dd>{ticket.Event?.location || "Chưa cập nhật"}</dd>
+          </div>
+          <div>
+            <dt>Giao dịch</dt>
+            <dd className="inline-actions">
+              <span>{formatHash(ticket.transactionHash)}</span>
+              <button
+                className="icon-button"
+                type="button"
+                title="Sao chép mã giao dịch"
+                aria-label="Sao chép mã giao dịch"
+                onClick={() => handleCopy(ticket.transactionHash)}
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                  <path d="M9 3.75A2.25 2.25 0 0 1 11.25 1.5h6A2.25 2.25 0 0 1 19.5 3.75v9A2.25 2.25 0 0 1 17.25 15h-6A2.25 2.25 0 0 1 9 12.75v-9Zm2.25-.75a.75.75 0 0 0-.75.75v9c0 .414.336.75.75.75h6a.75.75 0 0 0 .75-.75v-9a.75.75 0 0 0-.75-.75h-6Z" />
+                  <path d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 0-.75.75v9c0 .414.336.75.75.75h6a.75.75 0 0 0 .75-.75v-.75a.75.75 0 0 1 1.5 0v.75A2.25 2.25 0 0 1 12.75 18h-6A2.25 2.25 0 0 1 4.5 15.75v-9Z" />
+                </svg>
+              </button>
+            </dd>
+          </div>
+        </dl>
+
+        {!isUsed ? (
+          <>
+            <div className="card-actions ticket-card-actions">
+              <button
+                className="ghost-button compact"
+                type="button"
+                onClick={() => handleToggleQr(ticket.id)}
+              >
+                {expandedTicketId === ticket.id ? "Ẩn QR" : "Hiện QR"}
+              </button>
+              <button
+                className="secondary-button compact"
+                type="button"
+                onClick={() => handleDownloadQr(ticket.id)}
+                disabled={expandedTicketId !== ticket.id}
+              >
+                Tải QR
+              </button>
+            </div>
+            {expandedTicketId === ticket.id ? (
+              <div className="ticket-qr ticket-qr-shell">
+                <QRCodeCanvas
+                  value={buildQrValue(ticket)}
+                  size={220}
+                  includeMargin
+                  id={`qr-canvas-${ticket.id}`}
+                />
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="page-feedback ticket-card-note">
+            Vé đã sử dụng, không thể lấy QR. Check-in lúc: {formatDateTime(ticket.usedAt)}
+          </p>
+        )}
+      </div>
+    </article>
+  );
+
   if (!canViewTickets) {
     return (
       <section className="panel-card">
@@ -238,91 +354,7 @@ export function MyTicketsPage() {
 
               <div className="ticket-list">
                 {upcomingTickets.map((ticket) => {
-                  const isUsed = false;
-
-                  return (
-                    <article className="ticket-card" key={ticket.id}>
-                      <div className="event-visual ticket-visual" style={getPosterStyle(ticket.Event)}>
-                        <span className="event-visual-chip">Sẵn sàng check-in</span>
-                      </div>
-                      {buildTxUrl(ticket.transactionHash) ? (
-                        <a
-                          className="ghost-button compact"
-                          href={buildTxUrl(ticket.transactionHash)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Xem giao dịch
-                        </a>
-                      ) : null}
-                      <div>
-                        <h3>{ticket.Event?.title || "Sự kiện chưa có tên"}</h3>
-                      </div>
-                      <dl className="ticket-details">
-                        <div>
-                          <dt>Mã Token</dt>
-                          <dd>{ticket.tokenId}</dd>
-                        </div>
-                        <div>
-                          <dt>Ngày diễn ra</dt>
-                          <dd>{formatDateTime(ticket.Event?.date)}</dd>
-                        </div>
-                        <div>
-                          <dt>Địa điểm</dt>
-                          <dd>{ticket.Event?.location || "Chưa cập nhật"}</dd>
-                        </div>
-                        <div>
-                          <dt>Trạng thái</dt>
-                          <dd>{isUsed ? "Đã sử dụng" : "Chưa sử dụng"}</dd>
-                        </div>
-                        <div>
-                          <dt>Giao dịch</dt>
-                          <dd className="inline-actions">
-                            <span>{formatHash(ticket.transactionHash)}</span>
-                            <button
-                              className="icon-button"
-                              type="button"
-                              title="Sao chép mã giao dịch"
-                              aria-label="Sao chép mã giao dịch"
-                              onClick={() => handleCopy(ticket.transactionHash)}
-                            >
-                              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-                                <path d="M9 3.75A2.25 2.25 0 0 1 11.25 1.5h6A2.25 2.25 0 0 1 19.5 3.75v9A2.25 2.25 0 0 1 17.25 15h-6A2.25 2.25 0 0 1 9 12.75v-9Zm2.25-.75a.75.75 0 0 0-.75.75v9c0 .414.336.75.75.75h6a.75.75 0 0 0 .75-.75v-9a.75.75 0 0 0-.75-.75h-6Z" />
-                                <path d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 0-.75.75v9c0 .414.336.75.75.75h6a.75.75 0 0 0 .75-.75v-.75a.75.75 0 0 1 1.5 0v.75A2.25 2.25 0 0 1 12.75 18h-6A2.25 2.25 0 0 1 4.5 15.75v-9Z" />
-                              </svg>
-                            </button>
-                          </dd>
-                        </div>
-                      </dl>
-                      <div className="card-actions">
-                        <button
-                          className="ghost-button compact"
-                          type="button"
-                          onClick={() => handleToggleQr(ticket.id)}
-                        >
-                          {expandedTicketId === ticket.id ? "Ẩn QR" : "Hiện QR"}
-                        </button>
-                        <button
-                          className="ghost-button compact"
-                          type="button"
-                          onClick={() => handleDownloadQr(ticket.id)}
-                          disabled={expandedTicketId !== ticket.id}
-                        >
-                          Tải QR
-                        </button>
-                      </div>
-                      {expandedTicketId === ticket.id ? (
-                        <div className="ticket-qr">
-                          <QRCodeCanvas
-                            value={buildQrValue(ticket)}
-                            size={220}
-                            includeMargin
-                            id={`qr-canvas-${ticket.id}`}
-                          />
-                        </div>
-                      ) : null}
-                    </article>
-                  );
+                  return renderTicketCard(ticket, false);
                 })}
               </div>
             </>
@@ -333,67 +365,7 @@ export function MyTicketsPage() {
               ) : null}
               <div className="ticket-list">
                 {usedTickets.map((ticket) => {
-                  const isUsed = ticket.isUsed || ticket.status === "Used";
-
-                  return (
-                    <article className="ticket-card" key={ticket.id}>
-                      <div className="event-visual ticket-visual" style={getPosterStyle(ticket.Event)}>
-                        <span className="event-visual-chip">Đã tham gia</span>
-                      </div>
-                      {buildTxUrl(ticket.transactionHash) ? (
-                        <a
-                          className="ghost-button compact"
-                          href={buildTxUrl(ticket.transactionHash)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Xem giao dịch
-                        </a>
-                      ) : null}
-                      <div>
-                        <h3>{ticket.Event?.title || "Sự kiện chưa có tên"}</h3>
-                      </div>
-                      <dl className="ticket-details">
-                        <div>
-                          <dt>Mã Token</dt>
-                          <dd>{ticket.tokenId}</dd>
-                        </div>
-                        <div>
-                          <dt>Ngày diễn ra</dt>
-                          <dd>{formatDateTime(ticket.Event?.date)}</dd>
-                        </div>
-                        <div>
-                          <dt>Địa điểm</dt>
-                          <dd>{ticket.Event?.location || "Chưa cập nhật"}</dd>
-                        </div>
-                        <div>
-                          <dt>Trạng thái</dt>
-                          <dd>{isUsed ? "Đã sử dụng" : "Chưa sử dụng"}</dd>
-                        </div>
-                        <div>
-                          <dt>Giao dịch</dt>
-                          <dd className="inline-actions">
-                            <span>{formatHash(ticket.transactionHash)}</span>
-                            <button
-                              className="icon-button"
-                              type="button"
-                              title="Sao chép mã giao dịch"
-                              aria-label="Sao chép mã giao dịch"
-                              onClick={() => handleCopy(ticket.transactionHash)}
-                            >
-                              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-                                <path d="M9 3.75A2.25 2.25 0 0 1 11.25 1.5h6A2.25 2.25 0 0 1 19.5 3.75v9A2.25 2.25 0 0 1 17.25 15h-6A2.25 2.25 0 0 1 9 12.75v-9Zm2.25-.75a.75.75 0 0 0-.75.75v9c0 .414.336.75.75.75h6a.75.75 0 0 0 .75-.75v-9a.75.75 0 0 0-.75-.75h-6Z" />
-                                <path d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 0-.75.75v9c0 .414.336.75.75.75h6a.75.75 0 0 0 .75-.75v-.75a.75.75 0 0 1 1.5 0v.75A2.25 2.25 0 0 1 12.75 18h-6A2.25 2.25 0 0 1 4.5 15.75v-9Z" />
-                              </svg>
-                            </button>
-                          </dd>
-                        </div>
-                      </dl>
-                      <p className="page-feedback">
-                        Vé đã sử dụng, không thể lấy QR. Check-in lúc: {formatDateTime(ticket.usedAt)}
-                      </p>
-                    </article>
-                  );
+                  return renderTicketCard(ticket, true);
                 })}
               </div>
             </>

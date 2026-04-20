@@ -7,13 +7,15 @@ const crypto = require("crypto");
 const { normalizeEmail, normalizeWalletAddress } = require("../utils/normalizers");
 const { toAppRole, toDbRole } = require("../utils/roleMapping");
 const {
+  avatarUploadsDir,
+  organizerSettingsFile,
+  ticketPinStoreFile,
+} = require("../config/paths");
+const {
   generateTemporaryWalletAddress,
   isTemporaryWalletAddress,
 } = require("../utils/walletState");
 
-const AVATAR_UPLOAD_DIR = path.join(__dirname, "../../uploads/avatars");
-const ORGANIZER_SETTINGS_FILE = path.join(__dirname, "../../storage/organizer-profile-settings.json");
-const TICKET_PIN_STORE_FILE = path.join(__dirname, "../../storage/ticket-pin-settings.json");
 const MIME_TYPE_TO_EXTENSION = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -83,7 +85,7 @@ const buildPublicAvatarUrl = (req, relativePath) => {
 
 const readOrganizerSettingsStore = async () => {
   try {
-    const raw = await fs.readFile(ORGANIZER_SETTINGS_FILE, "utf8");
+    const raw = await fs.readFile(organizerSettingsFile, "utf8");
     return JSON.parse(raw);
   } catch (error) {
     if (error.code === "ENOENT") {
@@ -95,13 +97,13 @@ const readOrganizerSettingsStore = async () => {
 };
 
 const writeOrganizerSettingsStore = async (payload) => {
-  await fs.mkdir(path.dirname(ORGANIZER_SETTINGS_FILE), { recursive: true });
-  await fs.writeFile(ORGANIZER_SETTINGS_FILE, JSON.stringify(payload, null, 2), "utf8");
+  await fs.mkdir(path.dirname(organizerSettingsFile), { recursive: true });
+  await fs.writeFile(organizerSettingsFile, JSON.stringify(payload, null, 2), "utf8");
 };
 
 const readTicketPinStore = async () => {
   try {
-    const raw = await fs.readFile(TICKET_PIN_STORE_FILE, "utf8");
+    const raw = await fs.readFile(ticketPinStoreFile, "utf8");
     return JSON.parse(raw);
   } catch (error) {
     if (error.code === "ENOENT") {
@@ -113,8 +115,8 @@ const readTicketPinStore = async () => {
 };
 
 const writeTicketPinStore = async (payload) => {
-  await fs.mkdir(path.dirname(TICKET_PIN_STORE_FILE), { recursive: true });
-  await fs.writeFile(TICKET_PIN_STORE_FILE, JSON.stringify(payload, null, 2), "utf8");
+  await fs.mkdir(path.dirname(ticketPinStoreFile), { recursive: true });
+  await fs.writeFile(ticketPinStoreFile, JSON.stringify(payload, null, 2), "utf8");
 };
 
 const isValidTicketPin = (value) => /^\d{4}$/.test(String(value || "").trim());
@@ -348,11 +350,11 @@ exports.uploadAvatar = async (req, res) => {
       return res.status(400).json({ message: "Chưa nhận được dữ liệu ảnh" });
     }
 
-    await fs.mkdir(AVATAR_UPLOAD_DIR, { recursive: true });
+    await fs.mkdir(avatarUploadsDir, { recursive: true });
 
     const fileExtension = MIME_TYPE_TO_EXTENSION[mimeType];
     const fileName = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${fileExtension}`;
-    const absoluteFilePath = path.join(AVATAR_UPLOAD_DIR, fileName);
+    const absoluteFilePath = path.join(avatarUploadsDir, fileName);
     const relativeFilePath = `/uploads/avatars/${fileName}`;
 
     await fs.writeFile(absoluteFilePath, fileBuffer);

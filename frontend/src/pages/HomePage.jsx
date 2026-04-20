@@ -1,15 +1,18 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { eventService } from "../services/eventService";
+import { LandingHero } from "../components/home/LandingHero";
+import { EventDiscoveryBar } from "../components/home/EventDiscoveryBar";
+import { EventShowcaseCard } from "../components/home/EventShowcaseCard";
+import { SectionShell } from "../components/home/SectionShell";
 
 const sortEventsByDate = (events) =>
   [...events].sort((left, right) => new Date(left.date) - new Date(right.date));
 
 const EVENT_VISUALS = [
-  { from: "#14213d", to: "#1d3557", glow: "rgba(255, 196, 92, 0.28)" },
-  { from: "#4f000b", to: "#9d0208", glow: "rgba(255, 140, 120, 0.26)" },
-  { from: "#283618", to: "#606c38", glow: "rgba(255, 214, 102, 0.24)" },
-  { from: "#3d405b", to: "#6d597a", glow: "rgba(255, 200, 162, 0.26)" },
+  { from: "#151a33", to: "#6c5ce7", glow: "rgba(108, 92, 231, 0.28)" },
+  { from: "#101828", to: "#384152", glow: "rgba(255, 138, 0, 0.22)" },
+  { from: "#172036", to: "#3f5efb", glow: "rgba(140, 118, 255, 0.22)" },
+  { from: "#1b2437", to: "#6a4bff", glow: "rgba(255, 138, 0, 0.18)" },
 ];
 
 const getOrganizerDisplayName = (event) =>
@@ -40,7 +43,7 @@ const getPosterStyle = (event) => {
   }
 
   return {
-    backgroundImage: `linear-gradient(180deg, rgba(20, 33, 61, 0.10), rgba(20, 33, 61, 0.36)), url("${escapePosterUrl(event.posterUrl)}")`,
+    backgroundImage: `linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.5)), url("${escapePosterUrl(event.posterUrl)}")`,
     backgroundSize: "cover",
     backgroundPosition: "center",
   };
@@ -93,39 +96,52 @@ export function HomePage() {
     loadEvents();
   }, []);
 
-  const posterEvents = events.filter((event) => Boolean(event.posterUrl));
-  const featuredPosterEvents = (posterEvents.length > 0 ? posterEvents : events).slice(0, 8);
+  const filteredEvents = useMemo(() => {
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
+    return events.filter((event) => {
+      if (!normalizedSearchTerm) {
+        return true;
+      }
+
+      const searchableText = [
+        event.title,
+        event.description,
+        event.location,
+        getOrganizerDisplayName(event),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedSearchTerm);
+    });
+  }, [events, searchTerm]);
+
+  const featuredEvents = useMemo(() => {
+    const source = filteredEvents.length > 0 ? filteredEvents : events;
+    const posterEvents = source.filter((event) => Boolean(event.posterUrl));
+    return (posterEvents.length > 0 ? posterEvents : source).slice(0, 5);
+  }, [events, filteredEvents]);
 
   useEffect(() => {
-    if (featuredPosterEvents.length === 0) {
+    if (featuredEvents.length === 0) {
       setActivePosterIndex(0);
       return undefined;
     }
 
-    setActivePosterIndex((current) => current % featuredPosterEvents.length);
+    setActivePosterIndex((current) => current % featuredEvents.length);
 
-    if (featuredPosterEvents.length === 1) {
+    if (featuredEvents.length === 1) {
       return undefined;
     }
 
     const intervalId = window.setInterval(() => {
-      setActivePosterIndex((current) => (current + 1) % featuredPosterEvents.length);
-    }, 4500);
+      setActivePosterIndex((current) => (current + 1) % featuredEvents.length);
+    }, 6200);
 
     return () => window.clearInterval(intervalId);
-  }, [featuredPosterEvents.length]);
-
-  const goToPoster = (nextIndex) => {
-    if (featuredPosterEvents.length === 0) {
-      return;
-    }
-
-    const normalizedIndex =
-      ((nextIndex % featuredPosterEvents.length) + featuredPosterEvents.length) %
-      featuredPosterEvents.length;
-
-    setActivePosterIndex(normalizedIndex);
-  };
+  }, [featuredEvents.length]);
 
   const handlePosterDragStart = (clientX) => {
     setDragStartX(clientX);
@@ -141,171 +157,73 @@ export function HomePage() {
   };
 
   const handlePosterDragEnd = () => {
-    if (dragStartX === null) {
+    if (dragStartX === null || featuredEvents.length === 0) {
       return;
     }
 
     if (dragOffsetX <= -80) {
-      goToPoster(activePosterIndex + 1);
+      setActivePosterIndex((current) => (current + 1) % featuredEvents.length);
     } else if (dragOffsetX >= 80) {
-      goToPoster(activePosterIndex - 1);
+      setActivePosterIndex((current) => (current - 1 + featuredEvents.length) % featuredEvents.length);
     }
 
     setDragStartX(null);
     setDragOffsetX(0);
   };
 
-  const filteredEvents = events.filter((event) => {
-    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-
-    if (!normalizedSearchTerm) {
-      return true;
-    }
-
-    const searchableText = [
-      event.title,
-      event.description,
-      event.location,
-      getOrganizerDisplayName(event),
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return searchableText.includes(normalizedSearchTerm);
-  });
+  const spotlightEvent = featuredEvents[activePosterIndex] || filteredEvents[0] || events[0] || null;
 
   return (
-    <section className="page-stack">
-      <section className="hero-panel hero-showcase">
-        <div className="hero-showcase-top">
-          <h1>Sự kiện</h1>
-          {featuredPosterEvents.length > 1 ? (
-            <div className="hero-slider-dots" aria-label="Chuyển poster sự kiện">
-              {featuredPosterEvents.map((event, index) => (
-                <button
-                  key={event.id}
-                  className={index === activePosterIndex ? "hero-dot active" : "hero-dot"}
-                  type="button"
-                  onClick={() => goToPoster(index)}
-                  aria-label={`Xem poster ${index + 1}`}
-                />
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        {featuredPosterEvents.length > 0 ? (
-          <div className="hero-slider-window">
-            <div
-              className="hero-slider-track"
-              style={{
-                transform: `translateX(calc(-${activePosterIndex * 100}% + ${dragOffsetX}px))`,
-                transition: dragStartX === null ? undefined : "none",
-              }}
-              onTouchStart={(event) => handlePosterDragStart(event.touches[0].clientX)}
-              onTouchMove={(event) => handlePosterDragMove(event.touches[0].clientX)}
-              onTouchEnd={handlePosterDragEnd}
-              onTouchCancel={handlePosterDragEnd}
-              onMouseDown={(event) => handlePosterDragStart(event.clientX)}
-              onMouseMove={(event) => {
-                if (dragStartX !== null) {
-                  handlePosterDragMove(event.clientX);
-                }
-              }}
-              onMouseUp={handlePosterDragEnd}
-              onMouseLeave={handlePosterDragEnd}
-            >
-              {featuredPosterEvents.map((event) => (
-                <article className="hero-slide" key={event.id}>
-                  <div className="hero-slide-poster" style={getPosterStyle(event)}>
-                    <span className="hero-poster-chip">Sự kiện đang mở bán</span>
-                    {event.posterUrl ? (
-                      <img
-                        className="hero-slide-image"
-                        src={event.posterUrl}
-                        alt={event.title}
-                        draggable="false"
-                      />
-                    ) : null}
-                    <div className="hero-slide-overlay">
-                      <strong>
-                        <Link to={`/events/${event.id}`}>{event.title}</Link>
-                      </strong>
-                      <span>{formatDateTime(event.date)}</span>
-                      <small>
-                        {event.location || "Chưa cập nhật"} • {getOrganizerDisplayName(event)}
-                      </small>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </section>
+    <section className="page-stack landing-page">
+      <LandingHero
+        event={spotlightEvent}
+        featuredEvents={featuredEvents}
+        activeIndex={activePosterIndex}
+        onSelect={setActivePosterIndex}
+        onDragStart={handlePosterDragStart}
+        onDragMove={handlePosterDragMove}
+        onDragEnd={handlePosterDragEnd}
+        dragOffsetX={dragOffsetX}
+        getPosterStyle={getPosterStyle}
+        formatDateTime={formatDateTime}
+        getOrganizerDisplayName={getOrganizerDisplayName}
+        currencyLabel={currencyLabel}
+      />
 
       {pageError ? <p className="page-feedback page-feedback-error">{pageError}</p> : null}
 
-      <section className="panel-card event-list-panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Danh sách sự kiện</h2>
-          </div>
+      <SectionShell
+        id="discover-events"
+        title="Sự kiện đang mở bán"
+        action={
           <button className="ghost-button" type="button" onClick={loadEvents}>
             Tải lại
           </button>
-        </div>
+        }
+      >
+        <EventDiscoveryBar
+          searchTerm={searchTerm}
+          onSearch={setSearchTerm}
+          resultCount={filteredEvents.length}
+        />
 
         {isLoading ? <p className="page-feedback">Đang tải sự kiện...</p> : null}
 
-        <div className="event-toolbar">
-          <label className="form-field event-search-field">
-            <span>Tìm kiếm sự kiện</span>
-            <input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Tên sự kiện, địa điểm, ban tổ chức..."
-            />
-          </label>
-        </div>
-
-        <div className="event-carousel-shell">
-          <div className="event-carousel">
+        {!isLoading && filteredEvents.length > 0 ? (
+          <div className="showcase-grid">
             {filteredEvents.map((event) => (
-              <article className="event-card event-card-featured event-card-compact" key={event.id}>
-                {Number(event.soldTickets ?? 0) >= Number(event.totalTickets ?? 0) ? (
-                  <span className="event-badge">Hết vé</span>
-                ) : null}
-
-                <div className="event-visual" style={getPosterStyle(event)}>
-                  <span className="event-visual-chip">Sự kiện đang mở bán</span>
-                </div>
-
-                <div className="event-card-top">
-                  <h3>
-                    <Link to={`/events/${event.id}`}>{event.title}</Link>
-                  </h3>
-                  <p className="event-meta">{formatDateTime(event.date)}</p>
-                  <p className="event-meta">{event.location || "Chưa cập nhật"}</p>
-                  <p className="organizer-event-state">Sự kiện đang mở</p>
-                </div>
-
-                <div className="event-price-band">
-                  <span>Giá vé:</span>
-                  <strong>{Number(event.price || 0).toLocaleString("vi-VN")} {currencyLabel}</strong>
-                </div>
-
-                <div className="form-actions">
-                  <Link className="secondary-button compact" to={`/events/${event.id}`}>
-                    Chi tiết
-                  </Link>
-                </div>
-              </article>
+              <EventShowcaseCard
+                key={event.id}
+                event={event}
+                formatDateTime={formatDateTime}
+                getPosterStyle={getPosterStyle}
+                getOrganizerDisplayName={getOrganizerDisplayName}
+                currencyLabel={currencyLabel}
+              />
             ))}
           </div>
-        </div>
-      </section>
+        ) : null}
+      </SectionShell>
     </section>
   );
 }

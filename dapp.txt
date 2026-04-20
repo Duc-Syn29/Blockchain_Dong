@@ -1,14 +1,3 @@
-final
-thêm mã pin để xác thực khi hiển thị qr code của vé sự kiện, xác thực giao dịch 
-vé của tôi thêm nút nút vé chưa tham gia và vé đã sử dụng khi bấm vào tab vé của tôi sẽ hiện vé chưa sử dụng bấm nút vé đã sử dụng để xem các vé đã sử dụng rồi 
-quản lý sự kiện có thêm chức năng đóng sự kiện gỡ xuống khỏi trang chủ, admin vẫn có thể thấy lịch sử sự kiện đó trong quản lý sự kiện 
-nâng cấp giao diện ui:
-thêm ô tìm kiếm sự kiện tại trang chủ
-dropdown menu để điều hướng các chức năng
-
-
 
 kiểm tra tối ưu để sẵn sàng deploy web
-
-
 nâng cấp ui theo template ui của trang web này ticketbox.vn

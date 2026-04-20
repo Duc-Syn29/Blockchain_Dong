@@ -1,13 +1,12 @@
 const { ethers } = require("ethers");
 const fs = require("fs/promises");
-const path = require("path");
 const bcrypt = require("bcrypt");
 const { Ticket, Event, TicketTier, User } = require("../models");
 const { getContract, getMintFunctionName } = require("../config/blockchain");
+const { ticketPinStoreFile } = require("../config/paths");
 const { normalizeWalletAddress } = require("../utils/normalizers");
 const { isTemporaryWalletAddress } = require("../utils/walletState");
 
-const TICKET_PIN_STORE_FILE = path.join(__dirname, "../../storage/ticket-pin-settings.json");
 const isEventClosed = (event) =>
   String(event?.status || "").trim() === "Cancelled" ||
   String(event?.visibility || "").trim() === "Unlisted";
@@ -27,7 +26,7 @@ const normalizeWalletKey = (value) => {
 
 const readTicketPinStore = async () => {
   try {
-    const raw = await fs.readFile(TICKET_PIN_STORE_FILE, "utf8");
+    const raw = await fs.readFile(ticketPinStoreFile, "utf8");
     return JSON.parse(raw);
   } catch (error) {
     if (error.code === "ENOENT") {

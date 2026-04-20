@@ -159,101 +159,124 @@ export function EventDetailPage() {
 
         {!isLoading && eventItem ? (
           <div className="page-stack event-detail-stack">
-            <div className="hero-slider-window">
-              <div className="hero-slide-poster" style={getPosterStyle(eventItem)}>
-                <span className="hero-poster-chip">
-                  {isClosed ? "Đã đóng" : soldTickets >= totalTickets ? "Đã hết vé" : "Đang mở bán"}
-                </span>
-                <div className="hero-slide-overlay">
-                  <strong>{eventItem.title}</strong>
-                  <span>{formatDateTime(eventItem.date)}</span>
-                  <small>
-                    {eventItem.location || "Chưa cập nhật"} • {eventItem.organizerName || "Ban tổ chức"}
-                  </small>
+            <div className="event-detail-grid">
+              <div className="event-detail-main">
+                <div className="hero-slider-window event-detail-hero">
+                  <div className="hero-slide-poster" style={getPosterStyle(eventItem)}>
+                    {eventItem.posterUrl ? (
+                      <img
+                        className="poster-media-image poster-media-image-cover"
+                        src={eventItem.posterUrl}
+                        alt={eventItem.title}
+                        loading="eager"
+                        decoding="async"
+                        draggable="false"
+                      />
+                    ) : null}
+                    <span className="hero-poster-chip">
+                      {isClosed ? "Đã đóng" : soldTickets >= totalTickets ? "Đã hết vé" : "Đang mở bán"}
+                    </span>
+                    <div className="hero-slide-overlay">
+                      <strong>{eventItem.title}</strong>
+                      <span>{formatDateTime(eventItem.date)}</span>
+                      <small>
+                        {eventItem.location || "Chưa cập nhật"} • {eventItem.organizerName || "Ban tổ chức"}
+                      </small>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <dl className="event-details">
-              <div>
-                <dt>Chủ đề:</dt>
-                <dd>{eventItem.description || "Chưa cập nhật"}</dd>
+                <dl className="event-details">
+                  <div>
+                    <dt>Chủ đề:</dt>
+                    <dd>{eventItem.description || "Chưa cập nhật"}</dd>
+                  </div>
+                  <div>
+                    <dt>Địa điểm:</dt>
+                    <dd>{eventItem.location || "Chưa cập nhật"}</dd>
+                  </div>
+                  <div>
+                    <dt>Người tổ chức:</dt>
+                    <dd>{eventItem.organizerName || "Ban tổ chức"}</dd>
+                  </div>
+                </dl>
               </div>
-              <div>
-                <dt>Địa điểm:</dt>
-                <dd>{eventItem.location || "Chưa cập nhật"}</dd>
-              </div>
-              <div>
-                <dt>Người tổ chức:</dt>
-                <dd>{eventItem.organizerName || "Ban tổ chức"}</dd>
-              </div>
-            </dl>
 
-            <dl className="event-stats">
-              <div>
-                <dt>
-                  Giá: <span>{Number(eventItem.price || 0).toLocaleString("vi-VN")} {currencyLabel}</span>
-                </dt>
-              </div>
-              <div>
-                <dt>
-                  Tổng vé: <span>{totalTickets}</span>
-                </dt>
-              </div>
-              <div>
-                <dt>
-                  Đã bán: <span>{soldTickets}</span>
-                </dt>
-              </div>
-            </dl>
+              <aside className="panel-card event-detail-side">
+                <div className="event-detail-side-head">
+                  <span className="event-detail-side-kicker">Giao dịch an toàn</span>
+                  <strong>Mua vé và check-in trên chuỗi với xác thực PIN</strong>
+                </div>
 
-            <div className="event-progress">
-              <div
-                className="event-progress-bar"
-                style={{
-                  width: totalTickets > 0 ? `${(soldTickets / totalTickets) * 100}%` : "0%",
-                }}
-              />
-            </div>
-            <p className="event-remaining">Còn lại {remainingTickets} vé</p>
+                <dl className="event-stats event-stats-compact">
+                  <div>
+                    <dt>
+                      Giá: <span>{Number(eventItem.price || 0).toLocaleString("vi-VN")} {currencyLabel}</span>
+                    </dt>
+                  </div>
+                  <div>
+                    <dt>
+                      Tổng vé: <span>{totalTickets}</span>
+                    </dt>
+                  </div>
+                  <div>
+                    <dt>
+                      Đã bán: <span>{soldTickets}</span>
+                    </dt>
+                  </div>
+                </dl>
 
-            <div className="card-actions event-detail-actions">
-              <label className="form-field">
-                <span>Số vé</span>
-                <select
-                  className="form-select"
-                  value={quantity}
-                  onChange={(event) => setQuantity(Number(event.target.value))}
-                  disabled={isBuying || soldTickets >= totalTickets || isClosed}
-                >
-                  {Array.from({ length: maxSelectable }, (_, index) => {
-                    const value = index + 1;
-                    return (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    );
-                  })}
-                </select>
-              </label>
-              <button
-                className="primary-button"
-                type="button"
-                onClick={handleBuy}
-                disabled={isBuying || soldTickets >= totalTickets || isClosed}
-              >
-                {isClosed
-                  ? "Sự kiện đã đóng"
-                  : soldTickets >= totalTickets
-                  ? "Hết vé"
-                  : isBuying
-                    ? "Đang xử lý..."
-                    : isOrganizer
-                      ? "Ban tổ chức không thể mua"
-                      : isAuthenticated && !hasLinkedWallet
-                        ? "Liên kết ví để mua"
-                        : "Mua vé"}
-              </button>
+                <div className="event-detail-progress-card">
+                  <div className="event-progress">
+                    <div
+                      className="event-progress-bar"
+                      style={{
+                        width: totalTickets > 0 ? `${(soldTickets / totalTickets) * 100}%` : "0%",
+                      }}
+                    />
+                  </div>
+                  <p className="event-remaining">Còn lại {remainingTickets} vé</p>
+                </div>
+
+                <div className="card-actions event-detail-actions">
+                  <label className="form-field">
+                    <span>Số vé</span>
+                    <select
+                      className="form-select"
+                      value={quantity}
+                      onChange={(event) => setQuantity(Number(event.target.value))}
+                      disabled={isBuying || soldTickets >= totalTickets || isClosed}
+                    >
+                      {Array.from({ length: maxSelectable }, (_, index) => {
+                        const value = index + 1;
+                        return (
+                          <option key={value} value={value}>
+                            {value}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </label>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    onClick={handleBuy}
+                    disabled={isBuying || soldTickets >= totalTickets || isClosed}
+                  >
+                    {isClosed
+                      ? "Sự kiện đã đóng"
+                      : soldTickets >= totalTickets
+                      ? "Hết vé"
+                      : isBuying
+                        ? "Đang xử lý..."
+                        : isOrganizer
+                          ? "Ban tổ chức không thể mua"
+                          : isAuthenticated && !hasLinkedWallet
+                            ? "Liên kết ví để mua"
+                            : "Mua vé"}
+                  </button>
+                </div>
+              </aside>
             </div>
           </div>
         ) : null}

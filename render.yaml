@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: blockchain-dong-web
+    runtime: node
+    plan: starter
+    region: singapore
+    rootDir: .
+    buildCommand: cd frontend && npm ci && npm run build && cd ../backend && npm ci
+    startCommand: cd backend && npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    disk:
+      name: app-data
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_SYNC
+        value: "false"
+      - key: UPLOADS_DIR
+        value: /var/data/uploads
+      - key: STORAGE_DIR
+        value: /var/data/storage
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: VITE_API_BASE_URL
+        sync: false
+      - key: VITE_BLOCK_EXPLORER_BASE_URL
+        value: https://explorer.oasis.io/testnet/sapphire
+      - key: VITE_CURRENCY_LABEL
+        value: ROSE
+      - key: RPC_URL
+        sync: false
+      - key: TESTNET_RPC_URL
+        sync: false
+      - key: PRIVATE_KEY
+        sync: false
+      - key: DEPLOYER_PRIVATE_KEY
+        sync: false
+      - key: CONTRACT_ADDRESS
+        sync: false
+      - key: MINT_FUNCTION_NAME
+        value: mintTicket

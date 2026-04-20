@@ -654,6 +654,16 @@ export function OrganizerPage() {
               {filteredEvents.map((eventItem) => (
                 <article className="event-card organizer-event-card event-card-compact" key={eventItem.id}>
                   <div className="event-visual organizer-event-visual" style={getPosterStyle(eventItem)}>
+                    {eventItem.posterUrl ? (
+                      <img
+                        className="poster-media-image poster-media-image-cover"
+                        src={eventItem.posterUrl}
+                        alt={eventItem.title}
+                        loading="lazy"
+                        decoding="async"
+                        draggable="false"
+                      />
+                    ) : null}
                     <span className="event-visual-chip">{getEventChipLabel(eventItem)}</span>
                   </div>
                   <div className="event-card-top organizer-event-top">
@@ -669,27 +679,30 @@ export function OrganizerPage() {
                   </div>
 
                   <div className="card-actions organizer-event-actions">
-                    <Link className="secondary-button compact" to={`/events/${eventItem.id}`}>
-                      Chi tiết
-                    </Link>
-                    <Link
-                      className="secondary-button compact"
-                      to={`/organizer/events/${eventItem.id}/edit`}
-                    >
-                      Chỉnh sửa
-                    </Link>
-                    <button
-                      className="ghost-button compact"
-                      type="button"
-                      onClick={() =>
-                        setActionMenuEventId((current) =>
-                          current === String(eventItem.id) ? "" : String(eventItem.id)
-                        )
-                      }
-                    >
-                      Thao tác
-                    </button>
+                    <div className="organizer-event-actions-main">
+                      <Link className="secondary-button compact" to={`/events/${eventItem.id}`}>
+                        Chi tiết
+                      </Link>
+                      <Link
+                        className="secondary-button compact"
+                        to={`/organizer/events/${eventItem.id}/edit`}
+                      >
+                        Chỉnh sửa
+                      </Link>
+                    </div>
+
                     <div className="organizer-event-primary-action">
+                      <button
+                        className="ghost-button compact"
+                        type="button"
+                        onClick={() =>
+                          setActionMenuEventId((current) =>
+                            current === String(eventItem.id) ? "" : String(eventItem.id)
+                          )
+                        }
+                      >
+                        Thao tác
+                      </button>
                       {eventItem.isClosed ? (
                         <button
                           className="ghost-button compact"

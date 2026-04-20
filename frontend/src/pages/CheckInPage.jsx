@@ -444,7 +444,7 @@ export function CheckInPage() {
             <input
               value={manualTokenId}
               onChange={(event) => setManualTokenId(event.target.value)}
-              placeholder="Ví dụ: 123"
+              placeholder="Nhập mã vé"
             />
           </label>
           <label className="form-field">
@@ -454,7 +454,7 @@ export function CheckInPage() {
               onChange={(event) => setManualTicketPin(event.target.value)}
               inputMode="numeric"
               maxLength={4}
-              placeholder="Ví dụ: 1234"
+              placeholder="Nhập mã PIN"
             />
           </label>
           <label className="form-field">

@@ -193,8 +193,78 @@ npm run preview
 - Backend cho phep CORS tu `FRONTEND_ORIGIN`.
 - File `.env` khong nen commit len Git.
 - Theo schema `Ticket.sql`, `walletAddress` la dinh danh chinh cua user, nen dang ky bat buoc phai co vi.
+- Khi deploy production, backend co the phuc vu luon `frontend/dist` neu ban build frontend truoc.
 
-## 8. Neu gap loi
+## 8. Deploy production
+
+### Cach don gian nhat
+
+Deploy theo mo hinh:
+
+- 1 backend Node.js
+- 1 MySQL production
+- frontend duoc build thanh `frontend/dist` va backend phuc vu cung domain
+
+Neu ban dung Render, xem tai lieu chi tiet trong [RENDER_DEPLOY.md](c:/Users/HP/Blockchain_Dong/RENDER_DEPLOY.md).
+
+### Build production
+
+```powershell
+cd frontend
+npm install
+npm run build
+
+cd ../backend
+npm install
+npm start
+```
+
+Neu thu muc `frontend/dist` ton tai, backend se tu dong phuc vu giao dien web.
+
+### Bien moi truong production toi thieu
+
+```env
+PORT=5000
+DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/blockchain_dong
+JWT_SECRET=mot_chuoi_bi_mat_rat_dai
+DB_SYNC=false
+FRONTEND_ORIGIN=https://ten-mien-cua-ban.com
+UPLOADS_DIR=
+STORAGE_DIR=
+```
+
+Frontend can duoc build voi:
+
+```env
+VITE_API_BASE_URL=https://ten-mien-api-cua-ban.com
+VITE_CURRENCY_LABEL=ROSE
+VITE_BLOCK_EXPLORER_BASE_URL=https://explorer.oasis.io/testnet/sapphire
+```
+
+Neu ban deploy frontend chung domain voi backend, co the dat `VITE_API_BASE_URL` bang chinh domain backend.
+
+### Lenh build/start goi y cho Render hoac VPS
+
+Build command:
+
+```powershell
+cd frontend && npm ci && npm run build && cd ../backend && npm ci
+```
+
+Start command:
+
+```powershell
+cd backend && npm start
+```
+
+### Luu y quan trong khi deploy
+
+- Thu muc `backend/uploads` hien dang luu poster/avatar local. Neu host khong co persistent disk, anh co the mat sau khi restart hoac redeploy.
+- Thu muc `backend/storage` dang luu mot so file JSON noi bo. Thu muc nay cung nen nam tren persistent disk neu ban muon giu du lieu on dinh.
+- Neu muon deploy ben vung hon, nen chuyen upload sang S3 / Cloudinary va chuyen cac file JSON tam sang database.
+- Neu bat blockchain mint NFT, can cau hinh them `RPC_URL`, `PRIVATE_KEY`, `CONTRACT_ADDRESS` va ABI nhu o phan tren.
+
+## 9. Neu gap loi
 
 ### Backend khong len
 

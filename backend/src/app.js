@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
+const { uploadsRoot } = require("./config/paths");
 
 const requiredEnvKeys = ["DATABASE_URL", "JWT_SECRET"];
 const missingEnvKeys = requiredEnvKeys.filter((key) => !process.env[key]);
@@ -13,6 +15,7 @@ const { connectDB, sequelize } = require("./config/db");
 require("./models");
 
 const app = express();
+const frontendDistPath = path.join(__dirname, "../../frontend/dist");
 const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"];
 const frontendOriginEnv = process.env.FRONTEND_ORIGIN || "";
 const allowedOrigins = frontendOriginEnv
@@ -35,13 +38,25 @@ app.use((req, res, next) => {
   return next();
 });
 
+app.get("/healthz", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use("/uploads", express.static(uploadsRoot));
 
 app.use("/auth", require("./routes/auth.routes"));
 app.use("/events", require("./routes/event.routes"));
 app.use("/tickets", require("./routes/ticket.routes"));
 app.use("/organizer", require("./routes/organizer.routes"));
+
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+
+  app.get(/^\/(?!auth|events|tickets|organizer|uploads).*/, (req, res) => {
+    res.sendFile(path.join(frontendDistPath, "index.html"));
+  });
+}
 
 const startServer = async () => {
   try {

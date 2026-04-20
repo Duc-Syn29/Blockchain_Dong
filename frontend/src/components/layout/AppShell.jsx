@@ -51,9 +51,15 @@ export function AppShell() {
             Blockchain Dong
           </NavLink>
         </div>
-        <nav className="nav-links">
-          <NavLink to="/">Trang chủ</NavLink>
-          {!isAuthenticated ? <NavLink to="/login">Đăng nhập</NavLink> : null}
+        <nav className="nav-links nav-links-surface">
+          <NavLink className="nav-link-item" to="/">
+            Trang chủ
+          </NavLink>
+          {!isAuthenticated ? (
+            <NavLink className="nav-link-item" to="/login">
+              Đăng nhập
+            </NavLink>
+          ) : null}
           {isAuthenticated ? (
             <div className="nav-menu-shell">
               <button

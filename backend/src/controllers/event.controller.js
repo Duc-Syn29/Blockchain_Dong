@@ -4,10 +4,10 @@ const crypto = require("crypto");
 const { Op } = require("sequelize");
 const { sequelize } = require("../config/db");
 const { Event, TicketTier, User } = require("../models");
+const { eventUploadsDir } = require("../config/paths");
 const { isTemporaryWalletAddress } = require("../utils/walletState");
 
 const DEFAULT_EVENT_DURATION_MS = 2 * 60 * 60 * 1000;
-const EVENT_UPLOAD_DIR = path.join(__dirname, "../../uploads/events");
 const MIME_TYPE_TO_EXTENSION = {
   "image/jpeg": ".jpg",
   "image/jpg": ".jpg",
@@ -284,10 +284,10 @@ exports.uploadPoster = async (req, res) => {
       });
     }
 
-    await fs.mkdir(EVENT_UPLOAD_DIR, { recursive: true });
+    await fs.mkdir(eventUploadsDir, { recursive: true });
 
     const fileName = `${Date.now()}-${crypto.randomUUID()}${extension}`;
-    const targetPath = path.join(EVENT_UPLOAD_DIR, fileName);
+    const targetPath = path.join(eventUploadsDir, fileName);
     await fs.writeFile(targetPath, req.body);
 
     const relativePath = `/uploads/events/${fileName}`;

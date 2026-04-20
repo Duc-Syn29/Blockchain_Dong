@@ -751,6 +751,16 @@ export function ProfilePage() {
                       {historyEvents.map((eventItem) => (
                         <article className="ticket-card" key={eventItem.id}>
                           <div className="event-visual ticket-visual" style={getPosterStyle(eventItem)}>
+                            {eventItem.posterUrl ? (
+                              <img
+                                className="poster-media-image poster-media-image-cover"
+                                src={eventItem.posterUrl}
+                                alt={eventItem.title}
+                                loading="lazy"
+                                decoding="async"
+                                draggable="false"
+                              />
+                            ) : null}
                             <span className="event-visual-chip">Đã check-in</span>
                           </div>
                           <div>
@@ -791,6 +801,16 @@ export function ProfilePage() {
                       {pendingEvents.map((eventItem) => (
                         <article className="ticket-card" key={eventItem.id}>
                           <div className="event-visual ticket-visual" style={getPosterStyle(eventItem)}>
+                            {eventItem.posterUrl ? (
+                              <img
+                                className="poster-media-image poster-media-image-cover"
+                                src={eventItem.posterUrl}
+                                alt={eventItem.title}
+                                loading="lazy"
+                                decoding="async"
+                                draggable="false"
+                              />
+                            ) : null}
                             <span className="event-visual-chip">Chưa check-in</span>
                           </div>
                           <div>
@@ -912,7 +932,7 @@ export function ProfilePage() {
                       name="contactPhone"
                       value={settingsValues.contactPhone}
                       onChange={handleSettingsChange}
-                      placeholder="Ví dụ: 0901234567"
+                      placeholder="Số điện thoại liên hệ"
                     />
                   </label>
                   <label className="form-field">
