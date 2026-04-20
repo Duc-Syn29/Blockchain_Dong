@@ -44,6 +44,11 @@ Gia tri toi thieu de chay auth + events:
 ```env
 PORT=5000
 DATABASE_URL=mysql://root:password@localhost:3306/blockchain_dong
+DB_HOST=
+DB_PORT=3306
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
 DB_SYNC=false
 JWT_SECRET=replace_with_a_long_random_secret
 FRONTEND_ORIGIN=http://localhost:5173
@@ -226,6 +231,11 @@ Neu thu muc `frontend/dist` ton tai, backend se tu dong phuc vu giao dien web.
 ```env
 PORT=5000
 DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/blockchain_dong
+DB_HOST=
+DB_PORT=3306
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
 JWT_SECRET=mot_chuoi_bi_mat_rat_dai
 DB_SYNC=false
 FRONTEND_ORIGIN=https://ten-mien-cua-ban.com

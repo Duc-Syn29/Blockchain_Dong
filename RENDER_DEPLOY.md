@@ -1,92 +1,58 @@
 # Deploy Tren Render
 
-Tai lieu nay chuan bi rieng cho du an `Blockchain_Dong`.
+Tai lieu nay duoc toi uu de deploy truc tiep tu repo GitHub nay bang `Blueprint` tren Render.
 
-## Kien truc de xuat
+## Kien truc sau khi sync Blueprint
 
-Render cho du an nay nen tach thanh 2 phan:
+File [render.yaml](C:/Users/HP/Blockchain_Dong/render.yaml) hien tai se tao 2 service:
 
-1. `blockchain-dong-web`
-   - Render Web Service
-   - chay backend Node.js
-   - phuc vu luon `frontend/dist`
-   - co persistent disk cho:
+1. `blockchain-dong-mysql`
+   - Render `Private Service`
+   - runtime `docker`
+   - dung image MySQL 8 tu Dockerfile trong repo
+   - co persistent disk tai `/var/lib/mysql`
+   - tu dong init schema tu file `Ticket.sql` trong lan khoi tao dau tien
+
+2. `blockchain-dong-web`
+   - Render `Web Service`
+   - runtime `node`
+   - build frontend Vite thanh `frontend/dist`
+   - backend Express phuc vu luon frontend production
+   - co persistent disk tai `/var/data` de giu:
      - `uploads`
      - `storage`
 
-2. `blockchain-dong-mysql`
-   - Render Private Service
-   - chay MySQL 8
-   - co persistent disk rieng cho du lieu MySQL
+## Nhung gi repo da duoc chuan bi san
 
-## Trang thai repo hien tai
-
-Repo da duoc chuan bi san:
-
-- `render.yaml` de tao web service tren Render
+- `render.yaml` tao duoc ca web va mysql trong cung mot Blueprint
+- [deploy/render/mysql/Dockerfile](C:/Users/HP/Blockchain_Dong/deploy/render/mysql/Dockerfile) copy `Ticket.sql` vao `docker-entrypoint-initdb.d`
 - backend co `GET /healthz`
-- backend co the phuc vu frontend production tu `frontend/dist`
-- backend ho tro dat duong dan persistent qua:
+- backend ho tro persistent path qua:
   - `UPLOADS_DIR`
   - `STORAGE_DIR`
+- backend co the ket noi DB bang:
+  - `DATABASE_URL`
+  - hoac `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 
-## A. Tao MySQL private service tren Render
+## Cac gia tri ban se duoc Render hoi khi tao Blueprint
 
-Render khong cung cap MySQL managed giong Postgres, nen voi MySQL ban nen tao `Private Service` rieng va gan disk.
+Do trong `render.yaml` co `sync: false`, Render se prompt ban nhap:
 
-### Cach tao
-
-1. Vao Render Dashboard.
-2. Chon `New` -> `Private Service`.
-3. Chon cach deploy MySQL theo tai lieu Render:
-   - dung repo mau MySQL cua Render
-   - hoac dung official image MySQL neu ban quen voi Docker
-4. Dat ten goi y: `blockchain-dong-mysql`
-5. Chon region giong voi web service, goi y: `Singapore`
-6. Them env:
+### Cho MySQL
 
 ```env
-MYSQL_DATABASE=blockchain_dong
-MYSQL_USER=blockchain_dong
 MYSQL_PASSWORD=<mat-khau-rat-manh>
 MYSQL_ROOT_PASSWORD=<mat-khau-root-rat-manh>
 ```
 
-7. Gan persistent disk:
-   - Mount Path: `/var/lib/mysql`
-   - Size: `10 GB` tro len
-
-Sau khi deploy xong, private URL thuong co dang:
-
-```text
-blockchain-dong-mysql:3306
-```
-
-## B. Tao web service bang Blueprint
-
-Repo da co san `render.yaml`, ban co the dung Blueprint de Render tao service.
-
-### Cach tao
-
-1. Push repo len GitHub.
-2. Vao Render Dashboard.
-3. Chon `New` -> `Blueprint`.
-4. Ket noi toi repo nay.
-5. Render se doc file `render.yaml` va tao service `blockchain-dong-web`.
-
-## C. Gia tri env can nhap cho web service
-
-Trong `render.yaml`, cac bien `sync: false` can ban nhap tay tren Render.
-
-### Bat buoc
+### Cho Web
 
 ```env
-DATABASE_URL=mysql://blockchain_dong:<MYSQL_PASSWORD>@blockchain-dong-mysql:3306/blockchain_dong
 FRONTEND_ORIGIN=https://<ten-web-cua-ban>.onrender.com
 VITE_API_BASE_URL=https://<ten-web-cua-ban>.onrender.com
 ```
 
-### Neu dung blockchain mint NFT
+### Neu bat blockchain mint NFT
 
 ```env
 RPC_URL=https://testnet.sapphire.oasis.io
@@ -96,71 +62,103 @@ DEPLOYER_PRIVATE_KEY=0x...
 CONTRACT_ADDRESS=0x...
 ```
 
-### Da duoc set san trong Blueprint
+Neu chua can mint NFT, ban co the de trong cac bien blockchain va deploy phan auth + profile + events truoc.
 
-```env
-NODE_ENV=production
-PORT=10000
-DB_SYNC=false
-UPLOADS_DIR=/var/data/uploads
-STORAGE_DIR=/var/data/storage
-VITE_BLOCK_EXPLORER_BASE_URL=https://explorer.oasis.io/testnet/sapphire
-VITE_CURRENCY_LABEL=ROSE
-MINT_FUNCTION_NAME=mintTicket
+## Quy trinh deploy dung nhat
+
+1. Push code moi nhat len GitHub.
+2. Dang nhap Render.
+3. Chon `New` -> `Blueprint`.
+4. Chon repo GitHub:
+
+```text
+https://github.com/nguyendoantay05-byte/blockchain.git
 ```
 
-## D. Import database
+5. Chon nhanh chua code can deploy.
+   - Neu ban dang dung nhanh `feat/backend`, hay chon nhanh nay.
+   - Neu sau nay merge vao `main`, thi chon `main`.
+6. Render doc `render.yaml` va hien 2 service se duoc tao.
+7. Dien cac secret ma Render prompt.
+8. Bam `Apply`.
 
-Sau khi MySQL song, ban can import `Ticket.sql`.
+## Sau khi deploy lan dau
 
-Co 3 cach:
+### Kiem tra web service
 
-1. Ket noi vao MySQL bang MySQL Workbench tu may cua ban neu mo network phu hop.
-2. Dung shell/SSH trong Render de import.
-3. Import tu local vao MySQL service bang lenh `mysql`.
-
-Neu ban muon an toan nhat, hay import schema truoc khi mo web production.
-
-## E. Kiem tra sau deploy
-
-1. Mo:
+Mo:
 
 ```text
 https://<ten-web-cua-ban>.onrender.com/healthz
 ```
 
-Phai tra ve:
+Phai nhan:
 
 ```json
 {"ok":true}
 ```
 
-2. Mo trang chu web.
-3. Thu dang ky / dang nhap.
-4. Thu tao su kien.
-5. Thu upload poster.
-6. Thu reload lai de chac chan anh van con.
+### Kiem tra du lieu DB
 
-## F. Luu y quan trong
+Vi MySQL duoc init tu `Ticket.sql` trong lan khoi tao dau tien, schema se co san neu disk MySQL la moi.
 
-- Persistent disk cua web service la bat buoc neu ban muon giu:
-  - avatar
-  - poster
-  - file JSON trong `storage`
-- Persistent disk cua MySQL phai gan dung mount path `/var/lib/mysql`
-- Khi co disk, Render se khong zero-downtime deploy cho service do
-- Neu sau nay muon on dinh hon nua:
-  - chuyen anh sang Cloudinary / S3
-  - chuyen file JSON trong `storage` vao database
+## Cach Render dang noi 2 service voi nhau
 
-## G. Thu tu lam thuc te de it loi nhat
+Blueprint da map tu dong:
 
-1. Push code len GitHub
-2. Tao MySQL private service truoc
-3. Gan disk cho MySQL
-4. Import `Ticket.sql`
-5. Tao Blueprint web service
-6. Dien `DATABASE_URL`, `FRONTEND_ORIGIN`, `VITE_API_BASE_URL`
-7. Deploy
-8. Test `healthz`
-9. Test giao dien
+- `DB_HOST` <- private hostname cua `blockchain-dong-mysql`
+- `DB_NAME` <- `MYSQL_DATABASE`
+- `DB_USER` <- `MYSQL_USER`
+- `DB_PASSWORD` <- `MYSQL_PASSWORD`
+
+Nen `blockchain-dong-web` khong can ban tu ghep `DATABASE_URL` nua.
+
+## Luu y rat quan trong
+
+### 1. `Ticket.sql` chi tu dong import khi disk MySQL la moi
+
+Neu ban da deploy MySQL service roi va disk da co data, MySQL se khong chay lai script init.
+
+### 2. Anh upload va file JSON can disk
+
+Web service dang can disk `/var/data` de giu:
+
+- avatar
+- poster
+- `storage/ticket-pin-settings.json`
+- `storage/organizer-profile-settings.json`
+
+Neu bo disk, cac file nay co the mat sau restart/redeploy.
+
+### 3. Service co disk se khong zero-downtime deploy
+
+Day la han che binh thuong cua Render persistent disk.
+
+### 4. Blockchain la tuy chon
+
+Neu chua dien:
+
+- `RPC_URL`
+- `PRIVATE_KEY`
+- `CONTRACT_ADDRESS`
+
+thi app van co the chay nhung luong:
+
+- dang ky
+- dang nhap
+- cap nhat profile
+- xem / tao su kien
+
+nhung mua ve NFT se loi.
+
+## Neu ban muon deploy nhanh nhat
+
+Thu tu it loi nhat:
+
+1. Dung chinh `render.yaml` hien tai
+2. Tao Blueprint tu repo GitHub
+3. Nhap `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`
+4. Nhap `FRONTEND_ORIGIN`, `VITE_API_BASE_URL`
+5. Deploy
+6. Test `/healthz`
+7. Test dang ky / dang nhap / tao su kien / upload poster
