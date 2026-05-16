@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 
 const initialEventForm = {
   title: "",
+  introLine: "",
   description: "",
   posterUrl: "",
   date: "",
@@ -192,6 +193,7 @@ export function OrganizerPage() {
     try {
       await eventService.create({
         title: createForm.title.trim(),
+        introLine: createForm.introLine.trim(),
         description: createForm.description.trim(),
         posterUrl: createForm.posterUrl.trim(),
         date: createForm.date,
@@ -515,6 +517,16 @@ export function OrganizerPage() {
                   onChange={handleCreateFormChange}
                   placeholder="Tên sự kiện"
                   required
+                />
+              </label>
+              <label className="form-field">
+                <span>Dòng giới thiệu</span>
+                <input
+                  name="introLine"
+                  value={createForm.introLine}
+                  onChange={handleCreateFormChange}
+                  placeholder="Ví dụ: Đại tiệc fantasy cho fan kiếm hiệp"
+                  maxLength="255"
                 />
               </label>
               <label className="form-field">

@@ -139,8 +139,8 @@ export function RegisterPage() {
   return (
     <>
       <AuthForm
-        title="Đăng ký"
-        subtitle="Tạo tài khoản mới, liên kết ví sau khi đăng nhập"
+        title="Đăng ký"
+        subtitle="Tạo tài khoản mới, liên kết ví sau khi đăng nhập"
         fields={[
           {
             name: "name",
@@ -152,7 +152,7 @@ export function RegisterPage() {
             name: "email",
             label: "Email",
             type: "email",
-            placeholder: "Nhập email của bạn",
+            placeholder: "Nhập email của bạn",
           },
           {
             name: "role",
@@ -165,7 +165,7 @@ export function RegisterPage() {
           },
           {
             name: "password",
-            label: "Mật Khẩu",
+            label: "Mật khẩu",
             type: "password",
             placeholder: "Nhập mật khẩu của bạn",
           },
@@ -182,10 +182,10 @@ export function RegisterPage() {
         onBlur={handleBlur}
         onSubmit={handleSubmit}
         isSubmitting={isLoading}
-        submitLabel="Đăng ký"
+        submitLabel="Đăng ký"
         footer={
           <p>
-            Đã có tài khoản? <Link to="/login">Đăng nhập tại đây</Link>
+            Đã có tài khoản? <Link to="/login">Đăng nhập tại đây</Link>
           </p>
         }
       />

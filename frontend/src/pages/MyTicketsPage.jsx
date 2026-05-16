@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "../hooks/useAuth";
+import { usePinPrompt } from "../hooks/usePinPrompt";
 import { authService } from "../services/authService";
 import { ticketService } from "../services/ticketService";
 
@@ -79,6 +80,7 @@ export function MyTicketsPage() {
   const [expandedTicketId, setExpandedTicketId] = useState(null);
   const [activeTicketTab, setActiveTicketTab] = useState("unused");
   const [verifiedPinsByTicket, setVerifiedPinsByTicket] = useState({});
+  const { promptPin, pinPromptDialog } = usePinPrompt();
 
   const buildTxUrl = (hash) => {
     if (!explorerBaseUrl || !hash) {
@@ -117,7 +119,12 @@ export function MyTicketsPage() {
       return;
     }
 
-    const ticketPin = window.prompt("Nhập mã PIN vé gồm 4 số để hiển thị QR:");
+    const ticketPin = await promptPin({
+      title: "Xác thực hiển thị QR",
+      message: "Nhập mã PIN vé gồm 4 số để hiển thị QR.",
+      confirmLabel: "Hiện QR",
+    });
+
     if (ticketPin === null) {
       return;
     }
@@ -315,6 +322,7 @@ export function MyTicketsPage() {
 
   return (
     <section className="page-stack">
+      {pinPromptDialog}
       <section className="panel-card">
         <div className="panel-heading">
           <div>

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { eventService } from "../services/eventService";
 import { ticketService } from "../services/ticketService";
 import { useAuth } from "../hooks/useAuth";
+import { usePinPrompt } from "../hooks/usePinPrompt";
 import { addAppNotification } from "../utils/notifications";
 
 const EVENT_VISUALS = [
@@ -69,6 +70,7 @@ export function EventDetailPage() {
   const [message, setMessage] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [isBuying, setIsBuying] = useState(false);
+  const { promptPin, pinPromptDialog } = usePinPrompt();
 
   useEffect(() => {
     let isCancelled = false;
@@ -128,7 +130,11 @@ export function EventDetailPage() {
     setMessage("");
 
     try {
-      const ticketPin = window.prompt("Nhập mã PIN vé gồm 4 số để xác thực giao dịch:");
+      const ticketPin = await promptPin({
+        title: "Xác thực mua vé",
+        message: "Nhập mã PIN vé gồm 4 số để xác thực giao dịch.",
+        confirmLabel: "Mua vé",
+      });
 
       if (ticketPin === null) {
         setIsBuying(false);
@@ -152,6 +158,7 @@ export function EventDetailPage() {
 
   return (
     <section className="page-stack">
+      {pinPromptDialog}
       <section className="panel-card">
         {isLoading ? <p className="page-feedback">Đang tải chi tiết sự kiện...</p> : null}
         {pageError ? <p className="page-feedback page-feedback-error">{pageError}</p> : null}

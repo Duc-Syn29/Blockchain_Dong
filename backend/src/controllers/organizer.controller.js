@@ -27,6 +27,7 @@ const mapOrganizerEvent = async (event) => {
     id: event.id,
     title: event.title,
     description: event.description,
+    introLine: event.venueName,
     posterUrl: event.posterUrl,
     date: event.date,
     location: event.location,

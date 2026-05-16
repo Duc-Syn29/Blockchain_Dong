@@ -31,11 +31,9 @@ export function LandingHero({
           <span>{getOrganizerDisplayName(event)}</span>
         </div>
 
-        <p className="landing-trust-line">Thanh toán minh bạch • Vé NFT • Check-in nhanh</p>
-
         <div className="landing-hero-actions">
           <Link className="primary-button" to={`/events/${event.id}`}>
-            Xem sự kiện nổi bật
+            Xem chi tiết sự kiện
           </Link>
           <a className="secondary-button" href="#discover-events">
             Khám phá sự kiện
@@ -45,6 +43,12 @@ export function LandingHero({
         <p className="landing-price-line">
           <span>Giá vé:</span> {Number(event.price || 0).toLocaleString("vi-VN")} {currencyLabel}
         </p>
+        {event.introLine ? (
+          <div className="landing-intro-card">
+            <span className="landing-intro-label">Giới thiệu</span>
+            <p className="landing-intro-line">{event.introLine}</p>
+          </div>
+        ) : null}
       </div>
 
       <div className="landing-hero-stage">

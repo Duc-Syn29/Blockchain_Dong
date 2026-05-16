@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import {
   APP_NOTIFICATIONS_EVENT,
@@ -23,11 +23,14 @@ const formatNotificationTime = (value) => {
 
 export function AppShell() {
   const { isAuthenticated, logout, user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const canCheckIn = user?.role === "organizer" || user?.role === "staff";
   const canManageEvents = user?.role === "organizer";
   const canViewMyTickets = user?.role === "user";
   const [notifications, setNotifications] = useState([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuShellRef = useRef(null);
 
   useEffect(() => {
     setNotifications(getAppNotifications());
@@ -43,16 +46,61 @@ export function AppShell() {
     };
   }, []);
 
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (!menuShellRef.current?.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isMenuOpen]);
+
+  const handleHomeClick = (event) => {
+    event.preventDefault();
+    setIsMenuOpen(false);
+    navigate("/", {
+      state: {
+        refreshAt: Date.now(),
+      },
+    });
+  };
+
+  const handleLogout = () => {
+    setIsMenuOpen(false);
+    logout();
+  };
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <NavLink className="brand-mark" to="/">
+          <NavLink className="brand-mark" to="/" onClick={handleHomeClick}>
             Blockchain Dong
           </NavLink>
         </div>
         <nav className="nav-links nav-links-surface">
-          <NavLink className="nav-link-item" to="/">
+          <NavLink className="nav-link-item" to="/" onClick={handleHomeClick}>
             Trang chủ
           </NavLink>
           {!isAuthenticated ? (
@@ -61,13 +109,16 @@ export function AppShell() {
             </NavLink>
           ) : null}
           {isAuthenticated ? (
-            <div className="nav-menu-shell">
+            <div className="nav-menu-shell" ref={menuShellRef}>
               <button
                 className="ghost-button"
                 type="button"
                 onClick={() => setIsMenuOpen((current) => !current)}
               >
                 Menu
+                {notifications.length > 0 ? (
+                  <span className="notification-count">{notifications.length}</span>
+                ) : null}
               </button>
               {isMenuOpen ? (
                 <div className="nav-menu-dropdown">
@@ -92,7 +143,7 @@ export function AppShell() {
                   <button
                     className="ghost-button compact"
                     type="button"
-                    onClick={logout}
+                    onClick={handleLogout}
                   >
                     Đăng xuất
                   </button>

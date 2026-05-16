@@ -1,4 +1,24 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
+
+const resolveBaseUrl = () => {
+  const envBaseUrl = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
+  if (envBaseUrl) {
+    return envBaseUrl;
+  }
+
+  if (import.meta.env.DEV) {
+    return "http://localhost:5000";
+  }
+
+  if (typeof window !== "undefined") {
+    return normalizeBaseUrl(window.location.origin);
+  }
+
+  return "";
+};
+
+const BASE_URL = resolveBaseUrl();
 
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;

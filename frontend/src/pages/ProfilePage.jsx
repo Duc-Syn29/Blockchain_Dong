@@ -692,10 +692,12 @@ export function ProfilePage() {
                     <span>Mã PIN mới</span>
                     <input
                       name="ticketPin"
+                      type="password"
                       value={ticketPinValues.ticketPin}
                       onChange={handleTicketPinChange}
                       inputMode="numeric"
                       maxLength={4}
+                      autoComplete="new-password"
                       placeholder="Nhập 4 chữ số"
                     />
                   </label>
@@ -703,10 +705,12 @@ export function ProfilePage() {
                     <span>Xác nhận PIN</span>
                     <input
                       name="confirmTicketPin"
+                      type="password"
                       value={ticketPinValues.confirmTicketPin}
                       onChange={handleTicketPinChange}
                       inputMode="numeric"
                       maxLength={4}
+                      autoComplete="new-password"
                       placeholder="Nhập lại 4 chữ số"
                     />
                   </label>
