@@ -450,10 +450,12 @@ export function CheckInPage() {
           <label className="form-field">
             <span>Mã PIN vé</span>
             <input
+              type="password"
               value={manualTicketPin}
               onChange={(event) => setManualTicketPin(event.target.value)}
               inputMode="numeric"
               maxLength={4}
+              autoComplete="off"
               placeholder="Nhập mã PIN"
             />
           </label>

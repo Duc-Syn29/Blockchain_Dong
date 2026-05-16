@@ -71,6 +71,16 @@ const sanitizeEventPayload = (payload = {}) => {
     sanitizedPayload.description = String(payload.description).trim();
   }
 
+  if (payload.introLine !== undefined) {
+    const introLine = String(payload.introLine || "").trim();
+
+    if (introLine.length > 255) {
+      throw new Error("introLine is too long");
+    }
+
+    sanitizedPayload.introLine = introLine || null;
+  }
+
   if (payload.posterUrl !== undefined) {
     const posterUrl = String(payload.posterUrl || "").trim();
 
@@ -130,6 +140,7 @@ const mapEventResponse = (event) => {
     id: event.id,
     title: event.title,
     description: event.description,
+    introLine: event.venueName,
     posterUrl: event.posterUrl,
     date: event.date,
     location: event.location,
@@ -206,6 +217,7 @@ exports.createEvent = async (req, res) => {
         title: eventPayload.title,
         slug: await createUniqueSlug(eventPayload.title),
         description: eventPayload.description || "",
+        venueName: eventPayload.introLine || null,
         posterUrl: eventPayload.posterUrl || null,
         location: eventPayload.location || "TBA",
         date: eventDate,
@@ -406,6 +418,10 @@ exports.updateEvent = async (req, res) => {
 
     if (eventPayload.description !== undefined) {
       updates.description = eventPayload.description;
+    }
+
+    if (eventPayload.introLine !== undefined) {
+      updates.venueName = eventPayload.introLine;
     }
 
     if (eventPayload.posterUrl !== undefined) {

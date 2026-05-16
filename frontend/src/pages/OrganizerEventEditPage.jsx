@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 
 const createInitialForm = (eventItem) => ({
   title: eventItem?.title || "",
+  introLine: eventItem?.introLine || "",
   description: eventItem?.description || "",
   posterUrl: eventItem?.posterUrl || "",
   date: eventItem?.date ? new Date(eventItem.date).toISOString().slice(0, 16) : "",
@@ -86,6 +87,7 @@ export function OrganizerEventEditPage() {
     try {
       const response = await eventService.update(eventId, {
         title: formValues.title.trim(),
+        introLine: formValues.introLine.trim(),
         description: formValues.description.trim(),
         posterUrl: formValues.posterUrl.trim(),
         date: formValues.date,
@@ -181,6 +183,17 @@ export function OrganizerEventEditPage() {
                   onChange={handleChange}
                   placeholder="Tên sự kiện"
                   required
+                />
+              </label>
+
+              <label className="form-field">
+                <span>Dòng giới thiệu</span>
+                <input
+                  name="introLine"
+                  value={formValues.introLine}
+                  onChange={handleChange}
+                  placeholder="Ví dụ: Đại tiệc fantasy cho fan kiếm hiệp"
+                  maxLength="255"
                 />
               </label>
 

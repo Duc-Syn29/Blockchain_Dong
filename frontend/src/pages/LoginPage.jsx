@@ -98,18 +98,18 @@ export function LoginPage() {
   return (
     <>
       <AuthForm
-        title="Đăng nhập"
+        title="Đăng nhập"
         subtitle="Đăng nhập vào tài khoản của bạn"
         fields={[
           {
             name: "email",
             label: "Email",
             type: "email",
-            placeholder: "Nhập email của bạn",
+            placeholder: "Nhập email của bạn",
           },
           {
             name: "password",
-            label: "Mật khẩu",
+            label: "Mật khẩu",
             type: "password",
             placeholder: "Nhập mật khẩu của bạn",
           },
@@ -120,10 +120,10 @@ export function LoginPage() {
         onBlur={handleBlur}
         onSubmit={handleSubmit}
         isSubmitting={isLoading}
-        submitLabel="Đăng nhập"
+        submitLabel="Đăng nhập"
         footer={
           <p>
-            Chưa có tài khoản? <Link to="/register">Đăng ký tại đây</Link>
+            Chưa có tài khoản? <Link to="/register">Đăng ký tại đây</Link>
           </p>
         }
       />

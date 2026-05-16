@@ -23,4 +23,5 @@ module.exports = {
   eventUploadsDir: path.join(uploadsRoot, "events"),
   organizerSettingsFile: path.join(storageRoot, "organizer-profile-settings.json"),
   ticketPinStoreFile: path.join(storageRoot, "ticket-pin-settings.json"),
+  paymentTransactionStoreFile: path.join(storageRoot, "payment-transactions.json"),
 };

@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 
 const initialEventForm = {
   title: "",
+  introLine: "",
   description: "",
   posterUrl: "",
   date: "",
@@ -111,7 +112,7 @@ export function OrganizerPage() {
   const { user } = useAuth();
   const canManage = user?.role === "organizer";
   const hasLinkedWallet = Boolean(user?.walletLinked);
-  const currencyLabel = import.meta.env.VITE_CURRENCY_LABEL || "ROSE";
+  const currencyLabel = import.meta.env.VITE_CURRENCY_LABEL || "TEST";
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState("");
@@ -192,6 +193,7 @@ export function OrganizerPage() {
     try {
       await eventService.create({
         title: createForm.title.trim(),
+        introLine: createForm.introLine.trim(),
         description: createForm.description.trim(),
         posterUrl: createForm.posterUrl.trim(),
         date: createForm.date,
@@ -515,6 +517,16 @@ export function OrganizerPage() {
                   onChange={handleCreateFormChange}
                   placeholder="Tên sự kiện"
                   required
+                />
+              </label>
+              <label className="form-field">
+                <span>Dòng giới thiệu</span>
+                <input
+                  name="introLine"
+                  value={createForm.introLine}
+                  onChange={handleCreateFormChange}
+                  placeholder="Ví dụ: Đại tiệc fantasy cho fan kiếm hiệp"
+                  maxLength="255"
                 />
               </label>
               <label className="form-field">
