@@ -112,7 +112,7 @@ export function OrganizerPage() {
   const { user } = useAuth();
   const canManage = user?.role === "organizer";
   const hasLinkedWallet = Boolean(user?.walletLinked);
-  const currencyLabel = import.meta.env.VITE_CURRENCY_LABEL || "ROSE";
+  const currencyLabel = import.meta.env.VITE_CURRENCY_LABEL || "TEST";
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState("");

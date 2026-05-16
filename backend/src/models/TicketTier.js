@@ -43,7 +43,7 @@ const TicketTier = sequelize.define("TicketTier", {
   currency: {
     type: DataTypes.STRING(10),
     allowNull: false,
-    defaultValue: "ETH",
+    defaultValue: "TEST",
     field: "Currency",
   },
   perWalletLimit: {

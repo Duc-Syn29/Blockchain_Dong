@@ -5,6 +5,7 @@ import { ticketService } from "../services/ticketService";
 import { useAuth } from "../hooks/useAuth";
 import { usePinPrompt } from "../hooks/usePinPrompt";
 import { addAppNotification } from "../utils/notifications";
+import { sendNativePayment } from "../utils/nativePayment";
 
 const EVENT_VISUALS = [
   { from: "#14213d", to: "#1d3557", glow: "rgba(255, 196, 92, 0.28)" },
@@ -63,7 +64,7 @@ export function EventDetailPage() {
   const { isAuthenticated, user } = useAuth();
   const isOrganizer = user?.role === "organizer";
   const hasLinkedWallet = Boolean(user?.walletLinked);
-  const currencyLabel = import.meta.env.VITE_CURRENCY_LABEL || "ROSE";
+  const currencyLabel = import.meta.env.VITE_CURRENCY_LABEL || "TEST";
   const [eventItem, setEventItem] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState("");
@@ -130,6 +131,7 @@ export function EventDetailPage() {
     setMessage("");
 
     try {
+      const quote = await ticketService.quote(eventId, quantity);
       const ticketPin = await promptPin({
         title: "Xác thực mua vé",
         message: "Nhập mã PIN vé gồm 4 số để xác thực giao dịch.",
@@ -141,7 +143,14 @@ export function EventDetailPage() {
         return;
       }
 
-      const response = await ticketService.buy(eventId, quantity, ticketPin);
+      const paymentTransactionHash = await sendNativePayment({
+        ownerAddress: quote.buyerWalletAddress,
+        recipientAddress: quote.recipientAddress,
+        amountWei: quote.totalAmount,
+        chainId: quote.chainId,
+      });
+
+      const response = await ticketService.buy(eventId, quantity, ticketPin, paymentTransactionHash);
       const successMessage = response.message || `Mua ${quantity} vé thành công.`;
       setMessage(successMessage);
       addAppNotification({

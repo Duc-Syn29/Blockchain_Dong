@@ -5,6 +5,7 @@ const auth = require("../middleware/auth.middleware");
 const checkRole = require("../middleware/role.middleware");
 
 // User mua vé (Ai đăng nhập cũng mua được)
+router.post("/quote", auth, ticketController.getPurchaseQuote);
 router.post("/buy", auth, ticketController.buyTicket);
 
 // User xem vé của mình

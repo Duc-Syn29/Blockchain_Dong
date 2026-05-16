@@ -895,7 +895,7 @@ export function ProfilePage() {
                   Doanh thu:{" "}
                   <span>
                     {Number(organizerStats.totalRevenue || 0).toLocaleString("vi-VN")}{" "}
-                    {import.meta.env.VITE_CURRENCY_LABEL || "ROSE"}
+                    {import.meta.env.VITE_CURRENCY_LABEL || "TEST"}
                   </span>
                 </dt>
               </div>
@@ -1039,7 +1039,7 @@ export function ProfilePage() {
                   </div>
                   <div className="table-row">
                     <strong>Đơn vị tiền</strong>
-                    <span>{import.meta.env.VITE_CURRENCY_LABEL || "ROSE"}</span>
+                    <span>{import.meta.env.VITE_CURRENCY_LABEL || "TEST"}</span>
                   </div>
                   <div className="form-actions">
                     <Link className="secondary-button compact" to="/organizer">

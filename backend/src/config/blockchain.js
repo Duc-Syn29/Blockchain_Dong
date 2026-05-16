@@ -3,6 +3,8 @@ const path = require("path");
 const { ethers } = require("ethers");
 
 let cachedContract = null;
+let cachedProvider = null;
+let cachedWallet = null;
 
 const readContractAbi = () => {
   if (process.env.CONTRACT_ABI) {
@@ -30,6 +32,32 @@ const readContractAbi = () => {
 
 const getMintFunctionName = () => process.env.MINT_FUNCTION_NAME || "mintTicket";
 
+const getProvider = () => {
+  if (cachedProvider) {
+    return cachedProvider;
+  }
+
+  if (!process.env.RPC_URL) {
+    throw new Error("Missing blockchain environment variable: RPC_URL");
+  }
+
+  cachedProvider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+  return cachedProvider;
+};
+
+const getWallet = () => {
+  if (cachedWallet) {
+    return cachedWallet;
+  }
+
+  if (!process.env.PRIVATE_KEY) {
+    throw new Error("Missing blockchain environment variable: PRIVATE_KEY");
+  }
+
+  cachedWallet = new ethers.Wallet(process.env.PRIVATE_KEY, getProvider());
+  return cachedWallet;
+};
+
 const getContract = () => {
   if (cachedContract) {
     return cachedContract;
@@ -48,9 +76,7 @@ const getContract = () => {
     throw new Error("Contract ABI must be a non-empty JSON array");
   }
 
-  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet);
+  const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, getWallet());
   const mintFunctionName = getMintFunctionName();
 
   if (typeof contract[mintFunctionName] !== "function") {
@@ -64,4 +90,6 @@ const getContract = () => {
 module.exports = {
   getContract,
   getMintFunctionName,
+  getProvider,
+  getWallet,
 };
