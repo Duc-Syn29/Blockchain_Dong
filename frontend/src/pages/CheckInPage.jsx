@@ -3,7 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { ticketService } from "../services/ticketService";
 
 const parseTokenId = (payload) => {
-  const emptyResult = { tokenId: "", ticketPin: "" };
+  const emptyResult = { tokenId: "" };
 
   if (!payload) {
     return emptyResult;
@@ -12,11 +12,9 @@ const parseTokenId = (payload) => {
   try {
     const parsed = JSON.parse(payload);
     const candidate = parsed?.tokenId ?? parsed?.tokenID ?? parsed?.token;
-    const ticketPin = parsed?.ticketPin ?? parsed?.pin;
     if (candidate !== undefined && candidate !== null) {
       return {
         tokenId: String(candidate),
-        ticketPin: ticketPin ? String(ticketPin) : "",
       };
     }
   } catch (error) {
@@ -24,7 +22,7 @@ const parseTokenId = (payload) => {
   }
 
   if (/^\d+$/.test(payload)) {
-    return { tokenId: payload, ticketPin: "" };
+    return { tokenId: payload };
   }
 
   return emptyResult;
@@ -58,7 +56,6 @@ export function CheckInPage() {
   const [scanMessage, setScanMessage] = useState("");
   const [scanError, setScanError] = useState("");
   const [manualTokenId, setManualTokenId] = useState("");
-  const [manualTicketPin, setManualTicketPin] = useState("");
   const [isChecking, setIsChecking] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isPreparingCamera, setIsPreparingCamera] = useState(false);
@@ -72,7 +69,7 @@ export function CheckInPage() {
     setRecentScans((current) => [entry, ...current].slice(0, 6));
   };
 
-  const handleCheckIn = async (tokenId, ticketPin = "") => {
+  const handleCheckIn = async (tokenId) => {
     if (!tokenId) {
       setScanError("Không đọc được mã vé.");
       setLastResult({
@@ -96,7 +93,7 @@ export function CheckInPage() {
     setScanMessage("");
 
     try {
-      const response = await ticketService.checkIn(tokenId, ticketPin);
+      const response = await ticketService.checkIn(tokenId);
       setScanMessage(response.message || "Soát vé thành công.");
       setLastResult({
         status: "success",
@@ -160,7 +157,7 @@ export function CheckInPage() {
 
       const decodedText = await fileScannerRef.current.scanFile(file, true);
       const result = parseTokenId(decodedText);
-      await handleCheckIn(result.tokenId, result.ticketPin);
+      await handleCheckIn(result.tokenId);
     } catch (error) {
       setScanError("Không đọc được ảnh QR. Hãy thử lại.");
     }
@@ -293,7 +290,7 @@ export function CheckInPage() {
           setScanMessage("Đã nhận mã QR, đang kiểm tra...");
           setScanError("");
           const result = parseTokenId(decodedText);
-          await handleCheckIn(result.tokenId, result.ticketPin);
+          await handleCheckIn(result.tokenId);
           await handleStopCamera();
         },
         () => {}
@@ -436,7 +433,7 @@ export function CheckInPage() {
           className="profile-form"
           onSubmit={(event) => {
             event.preventDefault();
-            handleCheckIn(manualTokenId.trim(), manualTicketPin.trim());
+            handleCheckIn(manualTokenId.trim());
           }}
         >
           <label className="form-field">
@@ -445,18 +442,6 @@ export function CheckInPage() {
               value={manualTokenId}
               onChange={(event) => setManualTokenId(event.target.value)}
               placeholder="Nhập mã vé"
-            />
-          </label>
-          <label className="form-field">
-            <span>Mã PIN vé</span>
-            <input
-              type="password"
-              value={manualTicketPin}
-              onChange={(event) => setManualTicketPin(event.target.value)}
-              inputMode="numeric"
-              maxLength={4}
-              autoComplete="off"
-              placeholder="Nhập mã PIN"
             />
           </label>
           <label className="form-field">

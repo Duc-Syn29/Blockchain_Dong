@@ -662,7 +662,7 @@ export function OrganizerPage() {
               </label>
             </div>
 
-            <section className="event-grid">
+            <section className="event-grid organizer-event-grid">
               {filteredEvents.map((eventItem) => (
                 <article className="event-card organizer-event-card event-card-compact" key={eventItem.id}>
                   <div className="event-visual organizer-event-visual" style={getPosterStyle(eventItem)}>
@@ -676,7 +676,9 @@ export function OrganizerPage() {
                         draggable="false"
                       />
                     ) : null}
-                    <span className="event-visual-chip">{getEventChipLabel(eventItem)}</span>
+                    <span className="event-visual-chip organizer-event-chip">
+                      {getEventChipLabel(eventItem)}
+                    </span>
                   </div>
                   <div className="event-card-top organizer-event-top">
                     <h3>{eventItem.title}</h3>

@@ -453,14 +453,10 @@ exports.getMyTickets = async (req, res) => {
 
 exports.checkIn = async (req, res) => {
   try {
-    const { tokenId, ticketPin } = req.body;
+    const { tokenId } = req.body;
 
     if (!tokenId) {
       return res.status(400).json({ message: "tokenId is required" });
-    }
-
-    if (!/^\d{4}$/.test(String(ticketPin || "").trim())) {
-      return res.status(400).json({ message: "Thiếu mã PIN xác thực của vé" });
     }
 
     const ticket = await Ticket.findOne({
@@ -483,16 +479,6 @@ exports.checkIn = async (req, res) => {
 
     if (ticket.isUsed || ticket.status === "Used") {
       return res.status(400).json({ message: "QR đã qua sử dụng" });
-    }
-
-    const ticketPinHash = await getTicketPinHash(ticket.ownerWallet);
-    if (!ticketPinHash) {
-      return res.status(400).json({ message: "Vé này chưa thiết lập mã PIN xác thực" });
-    }
-
-    const isTicketPinValid = await bcrypt.compare(String(ticketPin || "").trim(), ticketPinHash);
-    if (!isTicketPinValid) {
-      return res.status(401).json({ message: "PIN trên vé không hợp lệ" });
     }
 
     ticket.isUsed = true;

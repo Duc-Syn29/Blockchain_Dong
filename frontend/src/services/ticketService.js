@@ -5,5 +5,5 @@ export const ticketService = {
   buy: (eventId, quantity = 1, ticketPin = "", paymentTransactionHash = "") =>
     apiClient.post("/tickets/buy", { eventId, quantity, ticketPin, paymentTransactionHash }),
   getMine: () => apiClient.get("/tickets/my"),
-  checkIn: (tokenId, ticketPin = "") => apiClient.post("/tickets/check-in", { tokenId, ticketPin }),
+  checkIn: (tokenId) => apiClient.post("/tickets/check-in", { tokenId }),
 };

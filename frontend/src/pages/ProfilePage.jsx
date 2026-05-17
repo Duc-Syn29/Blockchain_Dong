@@ -1048,7 +1048,7 @@ export function ProfilePage() {
                     <Link className="secondary-button compact" to="/check-in">
                       Soát vé
                     </Link>
-                    <button className="ghost-button compact" type="button" onClick={logout}>
+                    <button className="secondary-button compact" type="button" onClick={logout}>
                       Đăng xuất
                     </button>
                   </div>

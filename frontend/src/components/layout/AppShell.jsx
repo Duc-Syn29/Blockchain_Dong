@@ -95,9 +95,7 @@ export function AppShell() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <NavLink className="brand-mark" to="/" onClick={handleHomeClick}>
-            Blockchain Dong
-          </NavLink>
+          <NavLink className="brand-mark" to="/" onClick={handleHomeClick} aria-label="Trang chủ" />
         </div>
         <nav className="nav-links nav-links-surface">
           <NavLink className="nav-link-item" to="/" onClick={handleHomeClick}>
@@ -141,7 +139,7 @@ export function AppShell() {
                     </NavLink>
                   ) : null}
                   <button
-                    className="ghost-button compact"
+                    className="nav-menu-item-button"
                     type="button"
                     onClick={handleLogout}
                   >
