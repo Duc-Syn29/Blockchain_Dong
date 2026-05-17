@@ -221,7 +221,6 @@ export function EventDetailPage() {
               <aside className="panel-card event-detail-side">
                 <div className="event-detail-side-head">
                   <span className="event-detail-side-kicker">Giao dịch an toàn</span>
-                  <strong>Mua vé và check-in trên chuỗi với xác thực PIN</strong>
                 </div>
 
                 <dl className="event-stats event-stats-compact">

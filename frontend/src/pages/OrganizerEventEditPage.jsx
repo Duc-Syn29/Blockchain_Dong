@@ -14,6 +14,55 @@ const createInitialForm = (eventItem) => ({
   price: String(eventItem?.price || 0),
 });
 
+const buildUpdatePayload = (formValues, eventItem) => {
+  const payload = {};
+  const normalizedCurrentDate = formValues.date || "";
+  const normalizedEventDate = eventItem?.date
+    ? new Date(eventItem.date).toISOString().slice(0, 16)
+    : "";
+  const nextTitle = formValues.title.trim();
+  const nextIntroLine = formValues.introLine.trim();
+  const nextDescription = formValues.description.trim();
+  const nextPosterUrl = formValues.posterUrl.trim();
+  const nextLocation = formValues.location.trim();
+  const nextTotalTickets = Number(formValues.totalTickets);
+  const nextPrice = Number(formValues.price);
+
+  if (nextTitle !== (eventItem?.title || "")) {
+    payload.title = nextTitle;
+  }
+
+  if (nextIntroLine !== (eventItem?.introLine || "")) {
+    payload.introLine = nextIntroLine;
+  }
+
+  if (nextDescription !== (eventItem?.description || "")) {
+    payload.description = nextDescription;
+  }
+
+  if (nextPosterUrl !== (eventItem?.posterUrl || "")) {
+    payload.posterUrl = nextPosterUrl;
+  }
+
+  if (normalizedCurrentDate !== normalizedEventDate) {
+    payload.date = normalizedCurrentDate;
+  }
+
+  if (nextLocation !== (eventItem?.location || "")) {
+    payload.location = nextLocation;
+  }
+
+  if (nextTotalTickets !== Number(eventItem?.totalTickets || 0)) {
+    payload.totalTickets = nextTotalTickets;
+  }
+
+  if (nextPrice !== Number(eventItem?.price || 0)) {
+    payload.price = nextPrice;
+  }
+
+  return payload;
+};
+
 export function OrganizerEventEditPage() {
   const navigate = useNavigate();
   const { eventId } = useParams();
@@ -80,21 +129,20 @@ export function OrganizerEventEditPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const payload = buildUpdatePayload(formValues, eventItem);
+
+    if (Object.keys(payload).length === 0) {
+      setSaveMessage("Không có thay đổi nào để lưu.");
+      setPageError("");
+      return;
+    }
+
     setIsSaving(true);
     setSaveMessage("");
     setPageError("");
 
     try {
-      const response = await eventService.update(eventId, {
-        title: formValues.title.trim(),
-        introLine: formValues.introLine.trim(),
-        description: formValues.description.trim(),
-        posterUrl: formValues.posterUrl.trim(),
-        date: formValues.date,
-        location: formValues.location.trim(),
-        totalTickets: Number(formValues.totalTickets),
-        price: Number(formValues.price),
-      });
+      const response = await eventService.update(eventId, payload);
 
       setEventItem(response.event);
       setFormValues(createInitialForm(response.event));

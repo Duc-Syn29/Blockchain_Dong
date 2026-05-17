@@ -443,16 +443,19 @@ exports.updateEvent = async (req, res) => {
 
     await event.update(updates, { transaction });
 
-    await tier.update(
-      {
-        description: nextTitle,
-        maxSupply: nextTotalTickets,
-        price:
-          eventPayload.price !== undefined ? eventPayload.price : Number(tier.price),
-        saleEndTime: nextDate,
-      },
-      { transaction }
-    );
+    const tierUpdates = {
+      description: nextTitle,
+      maxSupply: nextTotalTickets,
+      price:
+        eventPayload.price !== undefined ? eventPayload.price : Number(tier.price),
+    };
+
+    if (eventPayload.date !== undefined) {
+      tierUpdates.saleStartTime = getSaleStartTime(nextDate);
+      tierUpdates.saleEndTime = nextDate;
+    }
+
+    await tier.update(tierUpdates, { transaction });
 
     await transaction.commit();
 

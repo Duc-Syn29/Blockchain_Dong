@@ -10,6 +10,22 @@ const formatAddress = (value) => {
 
 const normalizeAddress = (value) => String(value || "").trim().toLowerCase();
 
+const normalizeMetamaskError = (error, fallbackMessage) => {
+  const rawMessage = String(error?.message || "").trim();
+  const normalizedMessage = rawMessage.toLowerCase();
+
+  if (
+    error?.code === 4001 ||
+    normalizedMessage.includes("user denied") ||
+    normalizedMessage.includes("user rejected") ||
+    normalizedMessage.includes("denied transaction signature")
+  ) {
+    return new Error("Bạn đã hủy xác nhận giao dịch trong MetaMask.");
+  }
+
+  return new Error(rawMessage || fallbackMessage);
+};
+
 const waitForReceipt = async (transactionHash) => {
   for (let attempt = 0; attempt < 90; attempt += 1) {
     const receipt = await window.ethereum.request({
@@ -48,9 +64,16 @@ export const sendNativePayment = async ({
     throw new Error(`MetaMask đang ở sai mạng. Hãy chuyển sang Sapphire Testnet (chain ${chainId}).`);
   }
 
-  const connectedAccounts = await window.ethereum.request({
-    method: "eth_requestAccounts",
-  });
+  let connectedAccounts;
+
+  try {
+    connectedAccounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
+  } catch (error) {
+    throw normalizeMetamaskError(error, "Không thể kết nối MetaMask.");
+  }
+
   const selectedAddress = String(window.ethereum.selectedAddress || connectedAccounts?.[0] || "").trim();
 
   if (!selectedAddress) {
@@ -63,16 +86,22 @@ export const sendNativePayment = async ({
     );
   }
 
-  const transactionHash = await window.ethereum.request({
-    method: "eth_sendTransaction",
-    params: [
-      {
-        from: selectedAddress,
-        to: recipientAddress,
-        value: `0x${BigInt(amountWei).toString(16)}`,
-      },
-    ],
-  });
+  let transactionHash;
+
+  try {
+    transactionHash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [
+        {
+          from: selectedAddress,
+          to: recipientAddress,
+          value: `0x${BigInt(amountWei).toString(16)}`,
+        },
+      ],
+    });
+  } catch (error) {
+    throw normalizeMetamaskError(error, "Không thể gửi giao dịch thanh toán.");
+  }
 
   await waitForReceipt(transactionHash);
   return transactionHash;
