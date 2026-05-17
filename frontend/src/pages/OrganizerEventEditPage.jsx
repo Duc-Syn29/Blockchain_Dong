@@ -268,15 +268,6 @@ export function OrganizerEventEditPage() {
               </label>
 
               <label className="form-field event-editor-span">
-                <span>Poster sự kiện (URL ảnh)</span>
-                <input
-                  name="posterUrl"
-                  value={formValues.posterUrl}
-                  onChange={handleChange}
-                  placeholder="https://.../poster.jpg"
-                />
-              </label>
-              <label className="form-field event-editor-span">
                 <span>Tải poster từ máy</span>
                 <input
                   type="file"

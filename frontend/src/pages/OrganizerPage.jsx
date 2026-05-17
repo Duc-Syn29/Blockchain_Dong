@@ -540,15 +540,6 @@ export function OrganizerPage() {
                 />
               </label>
               <label className="form-field">
-                <span>Poster sự kiện (URL ảnh)</span>
-                <input
-                  name="posterUrl"
-                  value={createForm.posterUrl}
-                  onChange={handleCreateFormChange}
-                  placeholder="https://.../poster.jpg"
-                />
-              </label>
-              <label className="form-field">
                 <span>Tải poster từ máy</span>
                 <input
                   type="file"

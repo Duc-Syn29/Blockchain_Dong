@@ -85,6 +85,7 @@ export function ProfilePage() {
   const isWalletLinked = Boolean(user?.walletLinked);
   const tabs = isOrganizer ? PROFILE_TABS.organizer : PROFILE_TABS.user;
   const [activeTab, setActiveTab] = useState(tabs[0]?.id || "info");
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showWallet, setShowWallet] = useState(false);
   const [isLinkingWallet, setIsLinkingWallet] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -120,6 +121,7 @@ export function ProfilePage() {
   const [statsError, setStatsError] = useState("");
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [settingsValues, setSettingsValues] = useState(defaultOrganizerSettings);
+  const [initialSettingsValues, setInitialSettingsValues] = useState(defaultOrganizerSettings);
   const [settingsMessage, setSettingsMessage] = useState("");
   const [ticketPinValues, setTicketPinValues] = useState({
     ticketPin: "",
@@ -157,6 +159,10 @@ export function ProfilePage() {
   }, [isOrganizer]);
 
   useEffect(() => {
+    setIsEditingProfile(false);
+  }, [activeTab, isOrganizer]);
+
+  useEffect(() => {
     if (!isOrganizer) {
       setSettingsValues(defaultOrganizerSettings);
       return;
@@ -175,9 +181,14 @@ export function ProfilePage() {
           ...defaultOrganizerSettings,
           ...(response.settings || {}),
         });
+        setInitialSettingsValues({
+          ...defaultOrganizerSettings,
+          ...(response.settings || {}),
+        });
       } catch (error) {
         if (!isCancelled) {
           setSettingsValues(defaultOrganizerSettings);
+          setInitialSettingsValues(defaultOrganizerSettings);
         }
       }
     };
@@ -349,7 +360,23 @@ export function ProfilePage() {
         email: profileValues.email.trim(),
         avatarUrl: profileValues.avatarUrl.trim(),
       });
+      if (isOrganizer) {
+        const response = await authService.updateOrganizerSettings({
+          ...settingsValues,
+          contactPhone: settingsValues.contactPhone.trim(),
+          contactBio: settingsValues.contactBio.trim(),
+        });
+        setSettingsValues({
+          ...defaultOrganizerSettings,
+          ...(response.settings || {}),
+        });
+        setInitialSettingsValues({
+          ...defaultOrganizerSettings,
+          ...(response.settings || {}),
+        });
+      }
       setProfileMessage("Cập nhật hồ sơ thành công.");
+      setIsEditingProfile(false);
     } catch (error) {
       setProfileError(error.message);
     }
@@ -512,45 +539,8 @@ export function ProfilePage() {
 
         <dl className="profile-grid">
           <div>
-            <dt>Email</dt>
-            <dd>{visibleEmail ? user?.email || "Chưa có email" : "Đang ẩn trong hồ sơ"}</dd>
-          </div>
-          <div>
             <dt>Vai trò</dt>
             <dd>{user?.role ? roleLabel : "Người dùng"}</dd>
-          </div>
-          <div>
-            <dt>Ví</dt>
-            <dd className="inline-actions">
-              <span>
-                {visibleWallet && isWalletLinked && user?.walletAddress
-                  ? showWallet
-                    ? user.walletAddress
-                    : formatWallet(user.walletAddress)
-                  : visibleWallet
-                    ? "Chưa liên kết"
-                    : "Đang ẩn trong hồ sơ"}
-              </span>
-              {visibleWallet && isWalletLinked && user?.walletAddress ? (
-                <button
-                  className="icon-button"
-                  type="button"
-                  title={showWallet ? "Ẩn địa chỉ ví" : "Hiện địa chỉ ví"}
-                  aria-label={showWallet ? "Ẩn địa chỉ ví" : "Hiện địa chỉ ví"}
-                  onClick={() => setShowWallet((current) => !current)}
-                >
-                  {showWallet ? (
-                    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-                      <path d="M12 5.25c-4.81 0-8.7 3.14-10.5 6.75 1.8 3.61 5.69 6.75 10.5 6.75s8.7-3.14 10.5-6.75C20.7 8.39 16.81 5.25 12 5.25Zm0 11.25a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Zm0-7.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
-                    </svg>
-                  ) : (
-                    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-                      <path d="M3.28 4.34a.75.75 0 0 1 1.06 0l3.03 3.03A10.92 10.92 0 0 1 12 5.25c4.81 0 8.7 3.14 10.5 6.75a11.62 11.62 0 0 1-4.24 4.82l3.15 3.15a.75.75 0 1 1-1.06 1.06l-17.07-17.07a.75.75 0 0 1 0-1.06Zm6.2 6.2 4.98 4.98c.34-.39.54-.9.54-1.46a3 3 0 0 0-4.5-2.52Zm-1.53 1.53a3 3 0 0 0 3.92 3.92l-3.92-3.92Zm-2.1-2.1-2.82-2.82A11.4 11.4 0 0 0 1.5 12c1.8 3.61 5.69 6.75 10.5 6.75 1.63 0 3.18-.33 4.6-.92l-1.94-1.94a4.5 4.5 0 0 1-6.68-4.78Z" />
-                    </svg>
-                  )}
-                </button>
-              ) : null}
-            </dd>
           </div>
         </dl>
       </section>
@@ -573,69 +563,131 @@ export function ProfilePage() {
           <>
             <div className="panel-heading">
               <div>
-                <h2>{isOrganizer ? "Cập nhật hồ sơ tổ chức" : "Cập nhật thông tin cá nhân"}</h2>
+                <h2>{isOrganizer ? "Hồ sơ tổ chức" : "Thông tin cá nhân"}</h2>
               </div>
             </div>
 
-            <form className="profile-form" onSubmit={handleProfileSubmit}>
-              <label className="form-field">
-                <span>{isOrganizer ? "Tên tổ chức" : "Tên hiển thị"}</span>
-                <input
-                  name="name"
-                  value={profileValues.name}
-                  onChange={handleProfileChange}
-                  placeholder={isOrganizer ? "Tên ban tổ chức" : "Tên của bạn"}
-                />
-              </label>
-
-              <label className="form-field">
-                <span>Email</span>
-                <input
-                  name="email"
-                  type="email"
-                  value={profileValues.email}
-                  onChange={handleProfileChange}
-                  placeholder="email@example.com"
-                />
-              </label>
-
-              <label className="form-field">
-                <span>{isOrganizer ? "Logo / ảnh đại diện (URL)" : "Ảnh đại diện (URL)"}</span>
-                <input
-                  name="avatarUrl"
-                  value={profileValues.avatarUrl}
-                  onChange={handleProfileChange}
-                  placeholder="https://.../avatar.jpg"
-                />
-              </label>
-
-              <label className="form-field">
-                <span>Tải ảnh từ thiết bị</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  onChange={(event) => handleAvatarUpload(event.target.files?.[0])}
-                />
-                {isUploadingAvatar ? <span className="field-hint">Đang tải ảnh lên...</span> : null}
-              </label>
-
-              <div className="profile-avatar-preview">
-                <span>Xem trước</span>
-                <div className="profile-avatar profile-avatar-large">
-                  {profileValues.avatarUrl ? (
-                    <img src={profileValues.avatarUrl} alt={profileValues.name || "Ảnh đại diện"} />
-                  ) : (
-                    <span>{avatarFallback}</span>
-                  )}
+            {!isEditingProfile ? (
+              <div className="page-stack">
+                <div className="table-card">
+                  <div className="table-grid">
+                    <div className="table-row">
+                      <strong>{isOrganizer ? "Tên tổ chức" : "Tên hiển thị"}</strong>
+                      <span>{user?.name || "Chưa cập nhật"}</span>
+                    </div>
+                    <div className="table-row">
+                      <strong>Email</strong>
+                      <span>{user?.email || "Chưa cập nhật"}</span>
+                    </div>
+                    {isOrganizer ? (
+                      <div className="table-row">
+                        <strong>Mô tả ngắn</strong>
+                        <span>{settingsValues.contactBio || "Chưa cập nhật"}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="profile-avatar-preview">
+                  <span>{isOrganizer ? "Logo hiện tại" : "Ảnh đại diện hiện tại"}</span>
+                  <div className="profile-avatar profile-avatar-large">
+                    {profileValues.avatarUrl ? (
+                      <img src={profileValues.avatarUrl} alt={profileValues.name || "Ảnh đại diện"} />
+                    ) : (
+                      <span>{avatarFallback}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="form-actions">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => setIsEditingProfile(true)}
+                  >
+                    Sửa hồ sơ
+                  </button>
                 </div>
               </div>
+            ) : (
+              <form className="profile-form" onSubmit={handleProfileSubmit}>
+                <label className="form-field">
+                  <span>{isOrganizer ? "Tên tổ chức" : "Tên hiển thị"}</span>
+                  <input
+                    name="name"
+                    value={profileValues.name}
+                    onChange={handleProfileChange}
+                    placeholder={isOrganizer ? "Tên ban tổ chức" : "Tên của bạn"}
+                  />
+                </label>
 
-              <div className="form-actions">
-                <button className="primary-button" disabled={isLoading} type="submit">
-                  {isLoading ? "Đang lưu..." : "Lưu thay đổi"}
-                </button>
-              </div>
-            </form>
+                <label className="form-field">
+                  <span>Email</span>
+                  <input
+                    name="email"
+                    type="email"
+                    value={profileValues.email}
+                    onChange={handleProfileChange}
+                    placeholder="email@example.com"
+                  />
+                </label>
+
+                {isOrganizer ? (
+                  <label className="form-field">
+                    <span>Mô tả ngắn</span>
+                    <textarea
+                      name="contactBio"
+                      rows="4"
+                      value={settingsValues.contactBio}
+                      onChange={handleSettingsChange}
+                      placeholder="Giới thiệu ngắn về ban tổ chức"
+                    />
+                  </label>
+                ) : null}
+
+                <label className="form-field">
+                  <span>Tải ảnh từ thiết bị</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    onChange={(event) => handleAvatarUpload(event.target.files?.[0])}
+                  />
+                  {isUploadingAvatar ? <span className="field-hint">Đang tải ảnh lên...</span> : null}
+                </label>
+
+                <div className="profile-avatar-preview">
+                  <span>Xem trước</span>
+                  <div className="profile-avatar profile-avatar-large">
+                    {profileValues.avatarUrl ? (
+                      <img src={profileValues.avatarUrl} alt={profileValues.name || "Ảnh đại diện"} />
+                    ) : (
+                      <span>{avatarFallback}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <button className="primary-button" disabled={isLoading} type="submit">
+                    {isLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                  </button>
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => {
+                      setProfileValues({
+                        name: user?.name || "",
+                        email: user?.email || "",
+                        avatarUrl: user?.avatarUrl || "",
+                      });
+                      setSettingsValues(initialSettingsValues);
+                      setProfileError("");
+                      setProfileMessage("");
+                      setIsEditingProfile(false);
+                    }}
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </form>
+            )}
           </>
         ) : null}
 
@@ -923,72 +975,6 @@ export function ProfilePage() {
             </div>
 
             <form className="profile-form" onSubmit={handleSettingsSubmit}>
-              <div className="table-card">
-                <div className="panel-heading">
-                  <div>
-                    <h3>Thông tin liên hệ tổ chức</h3>
-                  </div>
-                </div>
-                <div className="table-grid">
-                  <label className="form-field">
-                    <span>Số điện thoại liên hệ</span>
-                    <input
-                      name="contactPhone"
-                      value={settingsValues.contactPhone}
-                      onChange={handleSettingsChange}
-                      placeholder="Số điện thoại liên hệ"
-                    />
-                  </label>
-                  <label className="form-field">
-                    <span>Mô tả ngắn</span>
-                    <textarea
-                      name="contactBio"
-                      rows="4"
-                      value={settingsValues.contactBio}
-                      onChange={handleSettingsChange}
-                      placeholder="Giới thiệu ngắn về ban tổ chức"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="table-card">
-                <div className="panel-heading">
-                  <div>
-                    <h3>Ví liên kết</h3>
-                  </div>
-                </div>
-                <div className="table-grid">
-                  <div className="table-row">
-                    <strong>Trạng thái ví nhận tiền</strong>
-                    <span>{isWalletLinked ? "Đã liên kết" : "Chưa liên kết"}</span>
-                  </div>
-                  <div className="table-row">
-                    <strong>Ví nhận tiền</strong>
-                    <span>{user?.walletAddress || "Chưa liên kết MetaMask"}</span>
-                  </div>
-                  <div className="form-actions">
-                    <button
-                      className="ghost-button compact"
-                      type="button"
-                      onClick={() =>
-                        handleCopy(user?.walletAddress, "Đã sao chép địa chỉ ví nhận tiền.")
-                      }
-                      disabled={!user?.walletAddress}
-                    >
-                      Sao chép ví nhận tiền
-                    </button>
-                    <button
-                      className="secondary-button compact"
-                      type="button"
-                      onClick={() => setActiveTab("wallet")}
-                    >
-                      Tab ví nhận tiền
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               <div className="table-card">
                 <div className="panel-heading">
                   <div>
