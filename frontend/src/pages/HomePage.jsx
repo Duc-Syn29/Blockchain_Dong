@@ -139,18 +139,9 @@ export function HomePage() {
     const nextThirtyDays = new Date(nowTime + 30 * 24 * 60 * 60 * 1000);
 
     return sortEventsByNearestUpcoming(events.filter((event) => {
-      const searchableText = [
-        event.title,
-        event.introLine,
-        event.description,
-        event.location,
-        getOrganizerDisplayName(event),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+      const searchableTitle = String(event.title || "").toLowerCase();
 
-      if (normalizedSearchTerm && !searchableText.includes(normalizedSearchTerm)) {
+      if (normalizedSearchTerm && !searchableTitle.includes(normalizedSearchTerm)) {
         return false;
       }
 

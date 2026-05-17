@@ -66,7 +66,7 @@ export function EventDiscoveryBar({
             id="landing-event-search"
             value={searchTerm}
             onChange={(event) => onSearch(event.target.value)}
-            placeholder="Tìm theo tên sự kiện, địa điểm hoặc ban tổ chức"
+            placeholder="Tìm theo tên sự kiện"
           />
         </label>
 

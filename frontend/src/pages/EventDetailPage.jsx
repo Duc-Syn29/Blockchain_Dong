@@ -215,6 +215,10 @@ export function EventDetailPage() {
                     <dt>Người tổ chức:</dt>
                     <dd>{eventItem.organizerName || "Ban tổ chức"}</dd>
                   </div>
+                  <div>
+                    <dt>Liên hệ:</dt>
+                    <dd>{eventItem.organizerEmail || "Chưa cập nhật"}</dd>
+                  </div>
                 </dl>
               </div>
 

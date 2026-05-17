@@ -149,6 +149,7 @@ const mapEventResponse = (event) => {
     price: tier ? Number(tier.price) : 0,
     organizerId: event.organizerId,
     organizerName: event.Organizer?.name || null,
+    organizerEmail: event.Organizer?.email || null,
     status: event.status,
     visibility: event.visibility,
     isClosed: isEventClosed(event),
@@ -179,7 +180,7 @@ const loadEventWithTier = (eventId) =>
       {
         model: User,
         as: "Organizer",
-        attributes: ["walletAddress", "name"],
+        attributes: ["walletAddress", "name", "email"],
       },
       {
         model: TicketTier,
@@ -325,7 +326,7 @@ exports.getEvents = async (req, res) => {
         {
           model: User,
           as: "Organizer",
-          attributes: ["walletAddress", "name"],
+          attributes: ["walletAddress", "name", "email"],
         },
         {
           model: TicketTier,
